@@ -35,7 +35,6 @@ def load_data(common_config: CommonConfig, time_config: TimeConfig) -> PlotData:
 
     # data field -> plot data
     t_2m_field = t_2m_field - 273.15
-    print(t_2m_field)
 
     return PlotData(
         t_2m_field=t_2m_field
@@ -72,5 +71,7 @@ def run_plot(job_config: JobConfig) -> Panel:
         plot_metadata=metadata,
     )
     plot_logger.info("plotting...done")
+
+    del plot_data
 
     return panel

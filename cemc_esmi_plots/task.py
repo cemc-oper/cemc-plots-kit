@@ -59,6 +59,10 @@ def run_task(task_file_path: Path):
 
     task_logger.info(f"get {len(job_configs)} jobs")
 
+    task_logger.info("begin to run jobs...")
+    run_by_serial(job_configs=job_configs)
+    task_logger.info("end jobs")
+
 
 def load_task_config(task_file_path: Path) -> Dict:
     with open(task_file_path) as task_file:
@@ -70,8 +74,8 @@ def run_by_serial(job_configs: List[JobConfig]):
     count = len(job_configs)
     for i, job_config in enumerate(job_configs):
         task_logger.info(f"job {i+1}/{count} start...")
-        task_logger.info(f"  {job_config.plot_config.plot_name} "
-                         f"{job_config.time_config.start_time} "
-                         f"{job_config.time_config.forecast_time}")
-        run_job(job_config=job_config)
+        task_logger.info(f"  [{job_config.plot_config.plot_name}] "
+                         f"[{job_config.time_config.start_time}] "
+                         f"[{job_config.time_config.forecast_time}]")
+        output_image_file_path = run_job(job_config=job_config)
         task_logger.info(f"job {i+1}/{count} done")

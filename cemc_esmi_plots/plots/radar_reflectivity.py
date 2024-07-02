@@ -1,8 +1,3 @@
-from pathlib import Path
-from typing import Union
-
-import pandas as pd
-
 from cedarkit.comp.smooth import smth9
 from cedarkit.comp.util import apply_to_xarray_values
 
@@ -81,6 +76,8 @@ def run_plot(job_config: JobConfig) -> Panel:
         plot_metadata=metadata,
     )
     plot_logger.info("plotting...done")
+
+    del plot_data
 
     # plot -> output
     return panel

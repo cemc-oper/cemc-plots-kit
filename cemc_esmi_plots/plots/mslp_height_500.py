@@ -100,5 +100,7 @@ def run_plot(job_config: JobConfig) -> Panel:
     )
     plot_logger.info("plotting...done")
 
+    del plot_data
+
     # plot -> output
     return panel

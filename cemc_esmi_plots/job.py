@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from cemc_esmi_plots.config import JobConfig
 from cemc_esmi_plots.plots import get_plot_module
@@ -38,6 +39,12 @@ def run_job(job_config: JobConfig) -> Path:
 
     job_logger.info(f"saving output image... {output_image_file_path}")
     panel.save(output_image_file_path)
+
+    # clear memory
+    plt.clf()
+    plt.close("all")
+    del panel
+    del plot_module
 
     job_logger.info(f"exiting work dir... {previous_dir}")
     os.chdir(previous_dir)

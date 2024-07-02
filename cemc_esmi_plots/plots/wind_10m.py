@@ -46,7 +46,6 @@ def load_data(common_config: CommonConfig, time_config: TimeConfig) -> PlotData:
     v_10m_info.level = 10
     v_10m_field = get_field_from_file(field_info=v_10m_info, file_path=file_path)
 
-
     # data field -> plot data
     u_10m_field = u_10m_field * 2.5
     v_10m_field = v_10m_field * 2.5
@@ -89,6 +88,8 @@ def run_plot(job_config: JobConfig) -> Panel:
         plot_metadata=metadata,
     )
     plot_logger.info("plotting...done")
+
+    del plot_data
 
     # plot -> output
     return panel

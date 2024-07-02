@@ -9,7 +9,12 @@ app = typer.Typer()
 
 
 @app.command()
-def run(task_file: Path = typer.Option()):
+def serial(task_file: Path = typer.Option()):
+    run_task(task_file_path=task_file)
+
+
+@app.command()
+def parallel(task_file: Path = typer.Option()):
     run_task(task_file_path=task_file)
 
 
