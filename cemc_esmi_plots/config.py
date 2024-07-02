@@ -32,3 +32,7 @@ class JobConfig:
     common_config: CommonConfig
     time_config: TimeConfig
     plot_config: PlotConfig
+
+
+def parse_start_time(start_time_str: str) -> pd.Timestamp:
+    return pd.to_datetime(start_time_str, format="%Y%m%d%H%M")

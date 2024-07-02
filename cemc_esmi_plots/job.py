@@ -25,6 +25,7 @@ def run_job(job_config: JobConfig) -> Path:
     job_logger.info(f"output image file name: {output_image_file_name}")
 
     plot_name = job_config.plot_config.plot_name
+    job_logger.info(f"loading plot module...")
     plot_module = get_plot_module(plot_name=plot_name)
     job_logger.info(f"get plot module: {plot_module.__name__}")
 
@@ -48,7 +49,7 @@ def create_work_dir(job_config: JobConfig) -> Path:
     base_work_dir = job_config.common_config.work_dir
     time_config = job_config.time_config
     start_time = time_config.start_time
-    start_time_label = start_time.strftime("%Y%m%d%H")
+    start_time_label = start_time.strftime("%Y%m%d%H%M")
     forecast_time = time_config.forecast_time
     forecast_time_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
 

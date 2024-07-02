@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import yaml
 import pandas as pd
@@ -7,7 +7,8 @@ import pandas as pd
 from cedarkit.maps.util import AreaRange
 
 from cemc_esmi_plots.logger import get_logger
-from cemc_esmi_plots.config import CommonConfig, PlotConfig, TimeConfig, JobConfig
+from cemc_esmi_plots.config import CommonConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time
+from cemc_esmi_plots.job import run_job
 
 
 task_logger = get_logger(__name__)
@@ -32,12 +33,14 @@ def run_task(task_file_path: Path):
     )
 
     time_config = task_config["time"]
-    start_time = pd.to_datetime(time_config["start_time"], format="%Y%m%d%H")
+    start_time = parse_start_time(time_config["start_time"])
     total_forecast_time = pd.to_timedelta(time_config["forecast_time"])
     forecast_interval = pd.to_timedelta(time_config["forecast_interval"])
     forecast_times = pd.timedelta_range("0h", total_forecast_time, freq=forecast_interval)
 
     plots_config = task_config["plots"]
+    selected_plots = [k for k,v in plots_config.items() if v]
+    task_logger.info(f"selected plots: {selected_plots}")
 
     job_configs = []
     for forecast_time in forecast_times:
@@ -45,7 +48,7 @@ def run_task(task_file_path: Path):
             start_time=start_time,
             forecast_time=forecast_time,
         )
-        for plot_name in plots_config:
+        for plot_name in selected_plots:
             plot_config = PlotConfig(plot_name=plot_name)
             job_config = JobConfig(
                 common_config=common_config,
@@ -54,7 +57,7 @@ def run_task(task_file_path: Path):
             )
             job_configs.append(job_config)
 
-    task_logger.info("")
+    task_logger.info(f"get {len(job_configs)} jobs")
 
 
 def load_task_config(task_file_path: Path) -> Dict:
@@ -63,5 +66,12 @@ def load_task_config(task_file_path: Path) -> Dict:
         return task_config
 
 
-def run_job_config(job_config: JobConfig):
-    pass
+def run_by_serial(job_configs: List[JobConfig]):
+    count = len(job_configs)
+    for i, job_config in enumerate(job_configs):
+        task_logger.info(f"job {i+1}/{count} start...")
+        task_logger.info(f"  {job_config.plot_config.plot_name} "
+                         f"{job_config.time_config.start_time} "
+                         f"{job_config.time_config.forecast_time}")
+        run_job(job_config=job_config)
+        task_logger.info(f"job {i+1}/{count} done")
