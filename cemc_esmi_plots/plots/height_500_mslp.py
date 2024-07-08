@@ -5,7 +5,7 @@ from cedarkit.comp.util import apply_to_xarray_values
 
 from cedarkit.maps.chart import Panel
 
-from cemc_plot_kit.plots.cn.mslp_height_500.default import PlotData, PlotMetadata, plot
+from cemc_plot_kit.plots.cn.height_500_mslp.default import PlotData, PlotMetadata, plot
 from cemc_plot_kit.data.field_info import hgt_info, mslp_info
 from cemc_plot_kit.data.source import get_field_from_file
 
@@ -16,7 +16,7 @@ from cemc_esmi_plots.logger import get_logger
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
-PLOT_NAME = "mslp_height_500"
+PLOT_NAME = "height_500_mslp"
 
 plot_logger = get_logger(PLOT_NAME)
 
