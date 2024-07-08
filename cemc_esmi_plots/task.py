@@ -7,7 +7,9 @@ import pandas as pd
 from cedarkit.maps.util import AreaRange
 
 from cemc_esmi_plots.logger import get_logger
-from cemc_esmi_plots.config import CommonConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time
+from cemc_esmi_plots.config import (
+    ExprConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time, RuntimeConfig
+)
 from cemc_esmi_plots.job import run_job
 
 
@@ -25,15 +27,20 @@ def run_task(task_file_path: Path):
         end_longitude=area_config["end_longitude"],
     )
 
-    common_config = CommonConfig(
-        source_grib2_dir=task_config["source"]["grib2_dir"],
-        work_dir=task_config["runtime"]["work_dir"],
+    grib2_file_name_template = task_config["source"].get("grib2_file_name_template", None)
+    expr_config = ExprConfig(
         system_name=task_config["system_name"],
         area=area,
+        source_grib2_dir=task_config["source"]["grib2_dir"],
+        grib2_file_name_template=grib2_file_name_template,
+    )
+
+    runtime_config = RuntimeConfig(
+        work_dir=task_config["runtime"]["work_dir"],
     )
 
     time_config = task_config["time"]
-    start_time = parse_start_time(time_config["start_time"])
+    start_time = parse_start_time(str(time_config["start_time"]))
     total_forecast_time = pd.to_timedelta(time_config["forecast_time"])
     forecast_interval = pd.to_timedelta(time_config["forecast_interval"])
     forecast_times = pd.timedelta_range("0h", total_forecast_time, freq=forecast_interval)
@@ -51,8 +58,9 @@ def run_task(task_file_path: Path):
         for plot_name in selected_plots:
             plot_config = PlotConfig(plot_name=plot_name)
             job_config = JobConfig(
-                common_config=common_config,
+                expr_config=expr_config,
                 time_config=time_config,
+                runtime_config=runtime_config,
                 plot_config=plot_config,
             )
             job_configs.append(job_config)

@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 import os
 
 import pandas as pd
@@ -12,7 +13,19 @@ from cemc_esmi_plots.logger import get_logger
 job_logger = get_logger("job")
 
 
-def run_job(job_config: JobConfig) -> Path:
+def run_job(job_config: JobConfig) -> List[Path]:
+    """
+    运行一个绘图任务
+
+    Parameters
+    ----------
+    job_config
+
+    Returns
+    -------
+    List[Path]
+        生成的图片路径列表
+    """
     job_logger.info("creating work dir...")
     current_work_dir = create_work_dir(job_config=job_config)
     job_logger.info(f"creating work dir... {current_work_dir}")
@@ -49,11 +62,22 @@ def run_job(job_config: JobConfig) -> Path:
     job_logger.info(f"exiting work dir... {previous_dir}")
     os.chdir(previous_dir)
 
-    return output_image_file_path
+    return [output_image_file_path]
 
 
 def create_work_dir(job_config: JobConfig) -> Path:
-    base_work_dir = job_config.common_config.work_dir
+    """
+    为一个绘图任务创建运行目录
+
+    Parameters
+    ----------
+    job_config
+
+    Returns
+    -------
+    Path
+    """
+    base_work_dir = job_config.runtime_config.work_dir
     time_config = job_config.time_config
     start_time = time_config.start_time
     start_time_label = start_time.strftime("%Y%m%d%H%M")
@@ -68,13 +92,35 @@ def create_work_dir(job_config: JobConfig) -> Path:
 
 
 def create_output_image_dir(job_config: JobConfig) -> Path:
-    base_work_dir = job_config.common_config.work_dir
+    """
+    创建输出图片保存目录
+
+    Parameters
+    ----------
+    job_config
+
+    Returns
+    -------
+    Path
+    """
+    base_work_dir = job_config.runtime_config.work_dir
     output_image_dir = Path(base_work_dir, "output")
     output_image_dir.mkdir(parents=True, exist_ok=True)
     return  output_image_dir
 
 
 def get_output_image_file_name(job_config: JobConfig) -> str:
+    """
+    返回输出图片的文件名
+
+    Parameters
+    ----------
+    job_config
+
+    Returns
+    -------
+    str
+    """
     time_config = job_config.time_config
     start_time = time_config.start_time
     start_time_label = start_time.strftime("%Y%m%d%H")

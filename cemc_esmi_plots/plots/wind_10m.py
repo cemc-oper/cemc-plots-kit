@@ -9,7 +9,7 @@ from cemc_plot_kit.data.field_info import u_info, v_info
 from cemc_plot_kit.data.source import get_field_from_file
 
 from cemc_esmi_plots.source import get_local_file_path
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, CommonConfig, JobConfig
+from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger
 
 
@@ -20,7 +20,7 @@ PLOT_NAME = "wind_10m"
 plot_logger = get_logger(PLOT_NAME)
 
 
-def load_data(common_config: CommonConfig, time_config: TimeConfig) -> PlotData:
+def load_data(common_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     # system -> data file
     grib2_dir = common_config.source_grib2_dir
     grib2_file_name_template = common_config.grib2_file_name_template
@@ -59,11 +59,11 @@ def load_data(common_config: CommonConfig, time_config: TimeConfig) -> PlotData:
 
 
 def run_plot(job_config: JobConfig) -> Panel:
-    common_config = job_config.common_config
+    expr_config = job_config.expr_config
     time_config = job_config.time_config
     plot_config = job_config.plot_config
 
-    system_name = common_config.system_name
+    system_name = expr_config.system_name
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time
 
@@ -71,12 +71,12 @@ def run_plot(job_config: JobConfig) -> Panel:
         start_time=start_time,
         forecast_time=forecast_time,
         system_name=system_name,
-        area_range=common_config.area,
+        area_range=expr_config.area,
     )
 
     plot_logger.info("loading data...")
     plot_data = load_data(
-        common_config=common_config,
+        common_config=expr_config,
         time_config=time_config,
     )
     plot_logger.info("loading data...done")
