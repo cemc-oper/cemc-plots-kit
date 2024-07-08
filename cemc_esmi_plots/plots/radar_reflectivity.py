@@ -19,10 +19,10 @@ PLOT_NAME = "radar_reflectivity"
 plot_logger = get_logger(PLOT_NAME)
 
 
-def load_data(common_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+def load_data(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     # system -> data file
-    grib2_dir = common_config.source_grib2_dir
-    grib2_file_name_template = common_config.grib2_file_name_template
+    grib2_dir = expr_config.source_grib2_dir
+    grib2_file_name_template = expr_config.grib2_file_name_template
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time
 
@@ -64,7 +64,7 @@ def run_plot(job_config: JobConfig) -> Panel:
 
     plot_logger.info("loading data...")
     plot_data = load_data(
-        common_config=expr_config,
+        expr_config=expr_config,
         time_config=time_config,
     )
     plot_logger.info("loading data...done")
