@@ -2,6 +2,33 @@ from pathlib import Path
 from typing import Union
 
 import pandas as pd
+import xarray as xr
+
+from cemc_plot_kit.data import DataSource, FieldInfo
+from cemc_plot_kit.data.source import get_field_from_file
+
+from cemc_esmi_plots.config import ExprConfig
+
+
+class EsmiLocalDataSource(DataSource):
+    def __init__(self, expr_config: ExprConfig):
+        super().__init__()
+        self.expr_config = expr_config
+
+    def retrieve(self, field_info: FieldInfo, start_time: pd.Timestamp, forecast_time: pd.Timedelta) -> xr.DataArray:
+        grib2_dir = self.expr_config.source_grib2_dir
+        grib2_file_name_template = self.expr_config.grib2_file_name_template
+
+        file_path = get_local_file_path(
+            grib2_dir=grib2_dir,
+            grib2_file_name_template=grib2_file_name_template,
+            start_time=start_time,
+            forecast_time=forecast_time
+        )
+
+        field = get_field_from_file(field_info=field_info, file_path=file_path)
+        return field
+
 
 
 def get_local_file_path(
