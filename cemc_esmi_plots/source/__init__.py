@@ -11,11 +11,38 @@ from cemc_esmi_plots.config import ExprConfig
 
 
 class EsmiLocalDataSource(DataSource):
+    """
+    科创平台本地数据源
+
+    Attributes
+    ----------
+    expr_config: ExprConfig
+        试验配置信息，包括
+
+        * `grib2_dir`: GRIB2 数据目录
+        * `grib2_file_name_template`: GRIB2 数据文件名模板
+    """
     def __init__(self, expr_config: ExprConfig):
         super().__init__()
         self.expr_config = expr_config
 
-    def retrieve(self, field_info: FieldInfo, start_time: pd.Timestamp, forecast_time: pd.Timedelta) -> xr.DataArray:
+    def retrieve(
+            self, field_info: FieldInfo, start_time: pd.Timestamp, forecast_time: pd.Timedelta
+    ) -> xr.DataArray or None:
+        """
+        从本地 GRIB2 文件中加载要素场
+
+        Parameters
+        ----------
+        field_info
+        start_time
+        forecast_time
+
+        Returns
+        -------
+        xr.DataArray or None
+        """
+        # system -> data file
         grib2_dir = self.expr_config.source_grib2_dir
         grib2_file_name_template = self.expr_config.grib2_file_name_template
 
@@ -26,6 +53,7 @@ class EsmiLocalDataSource(DataSource):
             forecast_time=forecast_time
         )
 
+        # data file -> data field
         field = get_field_from_file(field_info=field_info, file_path=file_path)
         return field
 

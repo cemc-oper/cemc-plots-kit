@@ -1,12 +1,11 @@
 from cedarkit.maps.chart import Panel
 
-from cemc_plot_kit.plots.cn.t_2m.default import PlotData, PlotMetadata, plot
-from cemc_plot_kit.data.field_info import t_2m_info, FieldInfo
-from cemc_plot_kit.data.source import get_field_from_file
+from cemc_plot_kit.data import DataLoader
+from cemc_plot_kit.plots.cn.t_2m.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import get_local_file_path
 from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger
+from cemc_esmi_plots.source import EsmiLocalDataSource
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
@@ -15,30 +14,20 @@ PLOT_NAME = "t_2m"
 plot_logger = get_logger(PLOT_NAME)
 
 
-def load_data(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     # system -> data file
-    grib2_dir = expr_config.source_grib2_dir
-    grib2_file_name_template = expr_config.grib2_file_name_template
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time
 
-    file_path = get_local_file_path(
-        grib2_dir=grib2_dir,
-        grib2_file_name_template=grib2_file_name_template,
+    data_source = EsmiLocalDataSource(expr_config=expr_config)
+    data_loader = DataLoader(data_source=data_source)
+
+    plot_data = load_data(
+        data_loader=data_loader,
         start_time=start_time,
         forecast_time=forecast_time
     )
-    plot_logger.info(f"get local file path: {file_path}")
-
-    # data file -> data field
-    t_2m_field = get_field_from_file(field_info=t_2m_info, file_path=file_path)
-
-    # data field -> plot data
-    t_2m_field = t_2m_field - 273.15
-
-    return PlotData(
-        t_2m_field=t_2m_field
-    )
+    return plot_data
 
 
 def run_plot(job_config: JobConfig) -> Panel:
@@ -58,7 +47,7 @@ def run_plot(job_config: JobConfig) -> Panel:
     )
 
     plot_logger.info("loading data...")
-    plot_data = load_data(
+    plot_data = load(
         expr_config=expr_config,
         time_config=time_config,
     )

@@ -1,15 +1,11 @@
-from cedarkit.comp.smooth import smth9
-from cedarkit.comp.util import apply_to_xarray_values
-
 from cedarkit.maps.chart import Panel
 
-from cemc_plot_kit.plots.cn.radar_reflectivity.default import PlotData, PlotMetadata, plot
-from cemc_plot_kit.data.field_info import cr_info
-from cemc_plot_kit.data.source import get_field_from_file
+from cemc_plot_kit.data import DataLoader
+from cemc_plot_kit.plots.cn.radar_reflectivity.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import get_local_file_path
 from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger
+from cemc_esmi_plots.source import EsmiLocalDataSource
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
@@ -19,31 +15,16 @@ PLOT_NAME = "radar_reflectivity"
 plot_logger = get_logger(PLOT_NAME)
 
 
-def load_data(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     # system -> data file
-    grib2_dir = expr_config.source_grib2_dir
-    grib2_file_name_template = expr_config.grib2_file_name_template
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time
 
-    file_path = get_local_file_path(
-        grib2_dir=grib2_dir,
-        grib2_file_name_template=grib2_file_name_template,
-        start_time=start_time,
-        forecast_time=forecast_time
-    )
-    plot_logger.info(f"get local file path: {file_path}")
+    data_source = EsmiLocalDataSource(expr_config=expr_config)
+    data_loader = DataLoader(data_source=data_source)
 
-    # data file -> data field
-    cr_field = get_field_from_file(field_info=cr_info, file_path=file_path)
-
-    # data field -> plot data
-    cr_field = apply_to_xarray_values(cr_field, lambda x: smth9(x, 0.5, -0.25, False))
-    cr_field = apply_to_xarray_values(cr_field, lambda x: smth9(x, 0.5, -0.25, False))
-
-    return PlotData(
-        cr_field=cr_field
-    )
+    plot_data = load_data(data_loader=data_loader, start_time=start_time, forecast_time=forecast_time)
+    return plot_data
 
 
 def run_plot(job_config: JobConfig) -> Panel:
@@ -63,7 +44,7 @@ def run_plot(job_config: JobConfig) -> Panel:
     )
 
     plot_logger.info("loading data...")
-    plot_data = load_data(
+    plot_data = load(
         expr_config=expr_config,
         time_config=time_config,
     )
