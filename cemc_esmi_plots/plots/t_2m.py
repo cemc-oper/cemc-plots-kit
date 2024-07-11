@@ -66,5 +66,5 @@ def run_plot(job_config: JobConfig) -> Panel:
     return panel
 
 
-def check_available(time_config: TimeConfig) -> bool:
+def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     return True

@@ -1,16 +1,18 @@
+import pandas as pd
+
 from cedarkit.maps.chart import Panel
 
 from cemc_plot_kit.data import DataLoader
-from cemc_plot_kit.plots.cn.height_500_wind_850.default import PlotData, PlotMetadata, plot, load_data
+from cemc_plot_kit.plots.cn.prep_24h.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.source import EsmiLocalDataSource
+from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
-PLOT_NAME = "height_500_wind_850"
+PLOT_NAME = "prep_24h"
 
 plot_logger = get_logger(PLOT_NAME)
 
@@ -63,5 +65,6 @@ def run_plot(job_config: JobConfig) -> Panel:
     # plot -> output
     return panel
 
+
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
-    return True
+    return time_config.forecast_time >= pd.Timedelta(hours=24)

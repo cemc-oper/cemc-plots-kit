@@ -68,10 +68,12 @@ def run_task(task_file_path: Path):
         for current_plot in selected_plots:
             plot_module = current_plot["plot_module"]
             plot_name = current_plot["plot_name"]
-            if not plot_module.check_available(time_config):
+            plot_config = PlotConfig(plot_name=plot_name)
+
+            if not plot_module.check_available(time_config=time_config, plot_config=plot_config):
                 task_logger.debug(f"skip job because of time: {plot_name} {start_time} {forecast_time}")
                 continue
-            plot_config = PlotConfig(plot_name=plot_name)
+
             job_config = JobConfig(
                 expr_config=expr_config,
                 time_config=time_config,
