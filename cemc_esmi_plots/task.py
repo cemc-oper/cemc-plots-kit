@@ -11,6 +11,7 @@ from cemc_esmi_plots.config import (
     ExprConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time, RuntimeConfig
 )
 from cemc_esmi_plots.job import run_job
+from cemc_esmi_plots.plots import get_plot_module
 
 
 task_logger = get_logger(__name__)
@@ -46,7 +47,16 @@ def run_task(task_file_path: Path):
     forecast_times = pd.timedelta_range("0h", total_forecast_time, freq=forecast_interval)
 
     plots_config = task_config["plots"]
-    selected_plots = [k for k,v in plots_config.items() if v]
+    selected_plots = []
+    for plot_name,v in plots_config.items():
+        if not v:
+            continue
+        plot_module = get_plot_module(plot_name=plot_name)
+        selected_plots.append({
+            "plot_name": plot_name,
+            "plot_module": plot_module,
+        })
+
     task_logger.info(f"selected plots: {selected_plots}")
 
     job_configs = []
@@ -55,7 +65,12 @@ def run_task(task_file_path: Path):
             start_time=start_time,
             forecast_time=forecast_time,
         )
-        for plot_name in selected_plots:
+        for current_plot in selected_plots:
+            plot_module = current_plot["plot_module"]
+            plot_name = current_plot["plot_name"]
+            if not plot_module.check_available(time_config):
+                task_logger.debug(f"skip job because of time: {plot_name} {start_time} {forecast_time}")
+                continue
             plot_config = PlotConfig(plot_name=plot_name)
             job_config = JobConfig(
                 expr_config=expr_config,

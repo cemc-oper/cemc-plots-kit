@@ -64,3 +64,7 @@ def run_plot(job_config: JobConfig) -> Panel:
     del plot_data
 
     return panel
+
+
+def check_available(time_config: TimeConfig) -> bool:
+    return True
