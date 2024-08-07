@@ -1,7 +1,7 @@
 from cedarkit.maps.chart import Panel
 
-from cemc_plot_kit.data import DataLoader
-from cemc_plot_kit.plots.cn.t_2m.default import PlotData, PlotMetadata, plot, load_data
+from cedar_graph.data import DataLoader
+from cedar_graph.plots.cn.t_2m.default import PlotData, PlotMetadata, plot, load_data
 
 from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger

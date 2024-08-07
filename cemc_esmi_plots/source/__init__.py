@@ -4,8 +4,8 @@ from typing import Union
 import pandas as pd
 import xarray as xr
 
-from cemc_plot_kit.data import DataSource, FieldInfo
-from cemc_plot_kit.data.source import get_field_from_file
+from cedar_graph.data import DataSource, FieldInfo
+from cedar_graph.data.source import get_field_from_file
 
 from cemc_esmi_plots.config import ExprConfig
 
