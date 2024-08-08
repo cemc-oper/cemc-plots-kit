@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 import os
 
 import pandas as pd
@@ -13,7 +12,7 @@ from cemc_esmi_plots.logger import get_logger
 job_logger = get_logger("job")
 
 
-def run_job(job_config: JobConfig) -> List[Path]:
+def run_job(job_config: JobConfig) -> list[Path]:
     """
     运行一个绘图任务
 

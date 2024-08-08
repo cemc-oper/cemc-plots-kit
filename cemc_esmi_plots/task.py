@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict, List
 
 import yaml
 import pandas as pd
@@ -89,13 +88,13 @@ def run_task(task_file_path: Path):
     task_logger.info("end jobs")
 
 
-def load_task_config(task_file_path: Path) -> Dict:
+def load_task_config(task_file_path: Path) -> dict:
     with open(task_file_path) as task_file:
         task_config = yaml.safe_load(task_file)
         return task_config
 
 
-def run_by_serial(job_configs: List[JobConfig]):
+def run_by_serial(job_configs: list[JobConfig]):
     count = len(job_configs)
     for i, job_config in enumerate(job_configs):
         task_logger.info(f"job {i+1}/{count} start...")
