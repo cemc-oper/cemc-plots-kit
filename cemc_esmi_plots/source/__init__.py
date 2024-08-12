@@ -12,7 +12,11 @@ from cemc_esmi_plots.config import ExprConfig
 
 class EsmiLocalDataSource(DataSource):
     """
-    科创平台本地数据源
+    科创平台本地数据源。模式 GRIB2 产品文件归档需要满足以下要求：
+
+    * 本地文件系统，支持 POSIX 协议
+    * 单个时次的 GRIB2 数据保存在同一个目录中
+    * GRIB2 文件名模板支持特定变量，参见 ``get_local_file_path`` 函数文档
 
     Attributes
     ----------
@@ -35,12 +39,16 @@ class EsmiLocalDataSource(DataSource):
         Parameters
         ----------
         field_info
+            要素信息
         start_time
+            起报时次
         forecast_time
+            预报时效
 
         Returns
         -------
         xr.DataArray or None
+            返回检索到的要素场，如果没找到则返回 None
         """
         # system -> data file
         grib2_dir = self.expr_config.source_grib2_dir
@@ -76,6 +84,9 @@ def get_local_file_path(
         GRIB2 文件模板，可以包含如下格式化字符串
             * start_time_label：起报时间，YYYYMMDDHH
             * forecast_hour_label：预报时效，小时，FFF
+        文件名示例如下：
+            * CMA-GFS: gmf.gra.{start_time_label}.grb2
+            * CMA-MESO: rmf.gra.{start_time_label}.grb2
     start_time
         起报时间
     forecast_time

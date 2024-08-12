@@ -32,6 +32,7 @@ dependencies = [
     "reki>=2024.4.0",
     "cedarkit-comp>=2024.4.0",
     "cedarkit-maps>=2024.4.0",
+    "cedar-graph",
 ]
 
 [project.urls]

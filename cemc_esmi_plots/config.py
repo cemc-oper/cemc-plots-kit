@@ -46,7 +46,12 @@ class PlotConfig:
 @dataclass
 class JobConfig:
     """
-    单次绘图作业的配置信息
+    单次绘图作业的配置信息，包括
+
+    * 试验配置
+    * 时间参数
+    * 运行时参数
+    * 绘图参数
     """
     expr_config: ExprConfig
     time_config: TimeConfig
@@ -61,13 +66,15 @@ def parse_start_time(start_time_str: str) -> pd.Timestamp:
     Parameters
     ----------
     start_time_str
-        格式：
-        * YYYYMMDDHHMM
-        * YYYYMMDDHH
+        起报时次字符串，支持格式：
+
+        * YYYYMMDDHHMM: 年月日时分
+        * YYYYMMDDHH: 年月日时
 
     Returns
     -------
     pd.Timestamp
+        解析后的时间对象
     """
     if len(start_time_str) == 12:
         format_str = "%Y%m%d%H%M"

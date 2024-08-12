@@ -14,11 +14,21 @@ job_logger = get_logger("job")
 
 def run_job(job_config: JobConfig) -> list[Path]:
     """
-    运行一个绘图任务
+    运行一个绘图作业，包括如下步骤：
+
+    * 创建工作目录
+    * 创建输入图片保存目录
+    * 加载绘图模块
+    * 进入到工作目录
+    * 执行绘图函数
+    * 保存图片结果
+    * 清理内存
+    * 恢复当前目录
 
     Parameters
     ----------
     job_config
+        作业配置，代表一个绘图作业
 
     Returns
     -------
@@ -66,15 +76,17 @@ def run_job(job_config: JobConfig) -> list[Path]:
 
 def create_work_dir(job_config: JobConfig) -> Path:
     """
-    为一个绘图任务创建运行目录
+    为一个绘图作业创建运行目录
 
     Parameters
     ----------
     job_config
+        作业配置
 
     Returns
     -------
     Path
+        运行目录
     """
     base_work_dir = job_config.runtime_config.work_dir
     time_config = job_config.time_config
@@ -97,10 +109,12 @@ def create_output_image_dir(job_config: JobConfig) -> Path:
     Parameters
     ----------
     job_config
+        作业配置
 
     Returns
     -------
     Path
+        输出图片保存目录
     """
     base_work_dir = job_config.runtime_config.work_dir
     output_image_dir = Path(base_work_dir, "output")
@@ -115,17 +129,19 @@ def get_output_image_file_name(job_config: JobConfig) -> str:
     Parameters
     ----------
     job_config
+        作业配置
 
     Returns
     -------
     str
+        输出图片文件名
     """
     time_config = job_config.time_config
+
     start_time = time_config.start_time
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_time = time_config.forecast_time
     forecast_time_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
-
     plot_name = job_config.plot_config.plot_name
 
     file_name = f"{plot_name}_{start_time_label}_{forecast_time_label}.png"
