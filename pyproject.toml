@@ -28,6 +28,7 @@ dependencies = [
     "matplotlib",
     "cartopy",
     "xarray",
+    "loguru",
     'importlib-metadata; python_version<"3.8"',
     "reki>=2024.4.0",
     "cedarkit-comp>=2024.4.0",
