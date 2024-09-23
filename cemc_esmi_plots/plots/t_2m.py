@@ -14,22 +14,6 @@ PLOT_NAME = "t_2m"
 plot_logger = get_logger(PLOT_NAME)
 
 
-def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
-    # system -> data file
-    start_time = time_config.start_time
-    forecast_time = time_config.forecast_time
-
-    data_source = ExprLocalDataSource(expr_config=expr_config)
-    data_loader = DataLoader(data_source=data_source)
-
-    plot_data = load_data(
-        data_loader=data_loader,
-        start_time=start_time,
-        forecast_time=forecast_time
-    )
-    return plot_data
-
-
 def run_plot(job_config: JobConfig) -> Panel:
     expr_config = job_config.expr_config
     time_config = job_config.time_config
@@ -68,3 +52,19 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     return True
+
+
+def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+    # system -> data file
+    start_time = time_config.start_time
+    forecast_time = time_config.forecast_time
+
+    data_source = ExprLocalDataSource(expr_config=expr_config)
+    data_loader = DataLoader(data_source=data_source)
+
+    plot_data = load_data(
+        data_loader=data_loader,
+        start_time=start_time,
+        forecast_time=forecast_time
+    )
+    return plot_data

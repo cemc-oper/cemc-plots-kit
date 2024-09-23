@@ -13,25 +13,9 @@ from cemc_esmi_plots.logger import get_logger
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
 PLOT_NAME = "rain_6h_wind_10m"
+RAIN_FORECAST_TIME_INTERVAL = pd.Timedelta(hours=6)
 
 plot_logger = get_logger(PLOT_NAME)
-
-
-def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
-    # system -> data file
-    start_time = time_config.start_time
-    forecast_time = time_config.forecast_time
-
-    data_source = ExprLocalDataSource(expr_config=expr_config)
-    data_loader = DataLoader(data_source=data_source)
-
-    plot_data = load_data(
-        data_loader=data_loader,
-        start_time=start_time,
-        forecast_time=forecast_time,
-        interval=pd.Timedelta(hours=6),
-    )
-    return plot_data
 
 
 def run_plot(job_config: JobConfig) -> Panel:
@@ -48,7 +32,7 @@ def run_plot(job_config: JobConfig) -> Panel:
         forecast_time=forecast_time,
         system_name=system_name,
         area_range=expr_config.area,
-        interval=pd.Timedelta(hours=6)
+        interval=RAIN_FORECAST_TIME_INTERVAL,
     )
 
     plot_logger.info("loading data...")
@@ -74,3 +58,20 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     return time_config.forecast_time >= pd.Timedelta(hours=6)
+
+
+def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+    # system -> data file
+    start_time = time_config.start_time
+    forecast_time = time_config.forecast_time
+
+    data_source = ExprLocalDataSource(expr_config=expr_config)
+    data_loader = DataLoader(data_source=data_source)
+
+    plot_data = load_data(
+        data_loader=data_loader,
+        start_time=start_time,
+        forecast_time=forecast_time,
+        interval=RAIN_FORECAST_TIME_INTERVAL,
+    )
+    return plot_data
