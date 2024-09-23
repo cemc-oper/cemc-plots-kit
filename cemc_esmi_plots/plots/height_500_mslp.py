@@ -3,28 +3,14 @@ from cedarkit.maps.chart import Panel
 from cedar_graph.data import DataLoader
 from cedar_graph.plots.cn.height_500_mslp.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import EsmiLocalDataSource
+from cemc_esmi_plots.source import ExprLocalDataSource
 from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
-
 PLOT_NAME = "height_500_mslp"
-
 plot_logger = get_logger(PLOT_NAME)
-
-
-def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
-    # system -> data file
-    start_time = time_config.start_time
-    forecast_time = time_config.forecast_time
-
-    data_source = EsmiLocalDataSource(expr_config=expr_config)
-    data_loader = DataLoader(data_source=data_source)
-
-    plot_data = load_data(data_loader=data_loader, start_time=start_time, forecast_time=forecast_time)
-    return plot_data
 
 
 def run_plot(job_config: JobConfig) -> Panel:
@@ -44,7 +30,7 @@ def run_plot(job_config: JobConfig) -> Panel:
     )
 
     plot_logger.info("loading data...")
-    plot_data = load(
+    plot_data = _load(
         expr_config=expr_config,
         time_config=time_config,
     )
@@ -66,3 +52,15 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     return True
+
+
+def _load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+    # system -> data file
+    start_time = time_config.start_time
+    forecast_time = time_config.forecast_time
+
+    data_source = ExprLocalDataSource(expr_config=expr_config)
+    data_loader = DataLoader(data_source=data_source)
+
+    plot_data = load_data(data_loader=data_loader, start_time=start_time, forecast_time=forecast_time)
+    return plot_data

@@ -5,7 +5,7 @@ from cedarkit.maps.chart import Panel
 from cedar_graph.data import DataLoader
 from cedar_graph.plots.cn.rain_wind_10m.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import EsmiLocalDataSource
+from cemc_esmi_plots.source import ExprLocalDataSource
 from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_esmi_plots.logger import get_logger
 
@@ -22,7 +22,7 @@ def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time
 
-    data_source = EsmiLocalDataSource(expr_config=expr_config)
+    data_source = ExprLocalDataSource(expr_config=expr_config)
     data_loader = DataLoader(data_source=data_source)
 
     plot_data = load_data(

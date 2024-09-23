@@ -10,7 +10,7 @@ from cedar_graph.data.source import get_field_from_file
 from cemc_esmi_plots.config import ExprConfig
 
 
-class EsmiLocalDataSource(DataSource):
+class ExprLocalDataSource(DataSource):
     """
     科创平台本地数据源。模式 GRIB2 产品文件归档需要满足以下要求：
 
