@@ -56,6 +56,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
 
     job_logger.info(f"entering work dir... {current_work_dir}")
     os.chdir(current_work_dir)
+
     job_logger.info(f"running plot job...")
     panel = plot_module.run_plot(job_config=job_config)
 

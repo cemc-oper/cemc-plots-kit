@@ -12,7 +12,7 @@ from cemc_esmi_plots.config import ExprConfig
 
 class ExprLocalDataSource(DataSource):
     """
-    科创平台本地数据源。模式 GRIB2 产品文件归档需要满足以下要求：
+    模式试验本地数据源。模式 GRIB2 产品文件归档需要满足以下要求：
 
     * 本地文件系统，支持 POSIX 协议
     * 单个时次的 GRIB2 数据保存在同一个目录中
@@ -20,7 +20,7 @@ class ExprLocalDataSource(DataSource):
 
     Attributes
     ----------
-    expr_config: ExprConfig
+    expr_config : ExprConfig
         试验配置信息，包括
 
         * `grib2_dir`: GRIB2 数据目录
@@ -85,8 +85,8 @@ def get_local_file_path(
             * start_time_label：起报时间，YYYYMMDDHH
             * forecast_hour_label：预报时效，小时，FFF
         文件名示例如下：
-            * CMA-GFS: gmf.gra.{start_time_label}.grb2
-            * CMA-MESO: rmf.gra.{start_time_label}.grb2
+            * CMA-GFS: gmf.gra.{start_time_label}{forecast_hour_label}.grb2
+            * CMA-MESO: rmf.hgra.{start_time_label}{forecast_hour_label}.grb2
     start_time
         起报时间
     forecast_time
@@ -96,6 +96,17 @@ def get_local_file_path(
     -------
     Path
         本地 GRIB2 文件路径
+
+    Examples
+    --------
+    >>> get_local_file_path(
+    ...     grib2_dir="/grib2/dir",
+    ...     grib2_file_name_template="rmf.hgra.{start_time_label}{forecast_hour_label}.grb2",
+    ...     start_time=pd.to_datetime("2023-09-23 00:00"),
+    ...     forecast_time=pd.to_timedelta("24h"),
+    ... )
+    PosixPath('/grib2/dir/rmf.hgra.2023092300024.grb2')
+
     """
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_hour = int(forecast_time / pd.Timedelta(hours=1))

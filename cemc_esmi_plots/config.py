@@ -75,11 +75,29 @@ def parse_start_time(start_time_str: str) -> pd.Timestamp:
     -------
     pd.Timestamp
         解析后的时间对象
+
+    Examples
+    --------
+    年月日时分
+
+    >>> parse_start_time("202409230000")
+    Timestamp('2024-09-23 00:00:00')
+
+    年月日时
+
+    >>> parse_start_time("2024092300")
+    Timestamp('2024-09-23 00:00:00')
+
+    年月日
+
+    >>> parse_start_time("20240923")
+    Timestamp('2024-09-23 00:00:00')
+
     """
     if len(start_time_str) == 12:
         format_str = "%Y%m%d%H%M"
     elif len(start_time_str) == 10:
-        format_str = "%Y%m%d%H%"
+        format_str = "%Y%m%d%H"
     elif len(start_time_str) == 8:
         format_str = "%Y%m%d"
     else:
