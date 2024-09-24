@@ -51,12 +51,12 @@ class ExprLocalDataSource(DataSource):
             返回检索到的要素场，如果没找到则返回 None
         """
         # system -> data file
-        grib2_dir = self.expr_config.source_grib2_dir
-        grib2_file_name_template = self.expr_config.grib2_file_name_template
+        data_dir = self.expr_config.source_grib2_dir
+        data_file_name_template = self.expr_config.grib2_file_name_template
 
         file_path = get_local_file_path(
-            grib2_dir=grib2_dir,
-            grib2_file_name_template=grib2_file_name_template,
+            data_dir=data_dir,
+            data_file_name_template=data_file_name_template,
             start_time=start_time,
             forecast_time=forecast_time
         )
@@ -68,20 +68,22 @@ class ExprLocalDataSource(DataSource):
 
 
 def get_local_file_path(
-        grib2_dir: Union[str, Path],
-        grib2_file_name_template: str,
+        data_dir: Union[str, Path],
+        data_file_name_template: str,
         start_time: pd.Timestamp,
         forecast_time: pd.Timedelta,
 ) -> Path:
     """
-    返回拼接的本地 GRIB2 文件路径
+    返回拼接的本地文件路径
 
     Parameters
     ----------
-    grib2_dir
-        GRIB2 目录，单个时次的所有 GRIB2 数据都保存在同一个目录中
-    grib2_file_name_template
-        GRIB2 文件模板，可以包含如下格式化字符串
+    data_dir
+        数据目录模板，单个时次的所有数据都保存在同一个目录中，可以包含如下格式字符串：
+            * start_time_label：起报时间，YYYYMMDDHH
+            * forecast_hour_label：预报时效，小时，FFF
+    data_file_name_template
+        文件名模板，可以包含如下格式化字符串
             * start_time_label：起报时间，YYYYMMDDHH
             * forecast_hour_label：预报时效，小时，FFF
         文件名示例如下：
@@ -95,13 +97,13 @@ def get_local_file_path(
     Returns
     -------
     Path
-        本地 GRIB2 文件路径
+        本地文件路径
 
     Examples
     --------
     >>> get_local_file_path(
-    ...     grib2_dir="/grib2/dir",
-    ...     grib2_file_name_template="rmf.hgra.{start_time_label}{forecast_hour_label}.grb2",
+    ...     data_dir="/grib2/dir",
+    ...     data_file_name_template="rmf.hgra.{start_time_label}{forecast_hour_label}.grb2",
     ...     start_time=pd.to_datetime("2023-09-23 00:00"),
     ...     forecast_time=pd.to_timedelta("24h"),
     ... )
@@ -111,9 +113,17 @@ def get_local_file_path(
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_hour = int(forecast_time / pd.Timedelta(hours=1))
     forecat_hour_label = f"{forecast_hour:03d}"
-    file_name = grib2_file_name_template.format(
+
+    data_dir_str = str(data_dir)
+    data_dir_str = data_dir_str.format(
+        start_time_label=start_time_label,
+        forecast_hour_label=forecat_hour_label,
+    )
+
+    file_name = data_file_name_template.format(
         start_time_label=start_time_label,
         forecast_hour_label=forecat_hour_label
     )
-    file_path = Path(grib2_dir, file_name)
+
+    file_path = Path(data_dir_str, file_name)
     return file_path
