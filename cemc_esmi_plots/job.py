@@ -44,7 +44,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
         current_work_dir = create_work_dir(job_config=job_config)
     else:
         current_work_dir = Path(work_dir)
-        current_work_dir.mkdir(exist_ok=True)
+        current_work_dir.mkdir(exist_ok=True, parents=True)
     job_logger.info(f"creating work dir... {current_work_dir}")
 
     job_logger.info("creating output image dir...")
@@ -53,7 +53,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
         output_image_dir = create_output_image_dir(job_config=job_config)
     else:
         output_image_dir = Path(output_image_dir)
-        output_image_dir.mkdir(exist_ok=True)
+        output_image_dir.mkdir(exist_ok=True, parents=True)
     job_logger.info(f"creating output image dir... {output_image_dir}")
 
     output_image_file_name = get_output_image_file_name(job_config=job_config)
