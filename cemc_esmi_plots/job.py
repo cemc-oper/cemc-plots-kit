@@ -90,7 +90,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
 
 def create_work_dir(job_config: JobConfig) -> Path:
     """
-    为一个绘图作业创建运行目录
+    为一个绘图作业创建运行目录，目录位置 ``{base_work_dir}/{start_time_label}/{plot_name}/{forecast_time_label}``
 
     Parameters
     ----------
@@ -102,7 +102,7 @@ def create_work_dir(job_config: JobConfig) -> Path:
     Path
         运行目录
     """
-    base_work_dir = job_config.runtime_config.work_dir
+    base_work_dir = job_config.runtime_config.base_work_dir
     time_config = job_config.time_config
     start_time = time_config.start_time
     start_time_label = start_time.strftime("%Y%m%d%H%M")
@@ -118,7 +118,7 @@ def create_work_dir(job_config: JobConfig) -> Path:
 
 def create_output_image_dir(job_config: JobConfig) -> Path:
     """
-    创建输出图片保存目录
+    创建输出图片保存目录，目录路径 ``{base_work_dir}/output``
 
     Parameters
     ----------
@@ -130,7 +130,7 @@ def create_output_image_dir(job_config: JobConfig) -> Path:
     Path
         输出图片保存目录
     """
-    base_work_dir = job_config.runtime_config.work_dir
+    base_work_dir = job_config.runtime_config.base_work_dir
     output_image_dir = Path(base_work_dir, "output")
     output_image_dir.mkdir(parents=True, exist_ok=True)
     return  output_image_dir
