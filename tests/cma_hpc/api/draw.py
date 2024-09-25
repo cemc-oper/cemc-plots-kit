@@ -8,31 +8,9 @@ from cedarkit.maps.util import AreaRange
 from cemc_esmi_plots.draw import draw_plot
 
 
-@pytest.fixture
-def cma_gfs_system_name() -> str:
-    return "CMA-GFS"
-
-
-@pytest.fixture
-def last_two_day() -> pd.Timestamp:
-    current = pd.Timestamp.now().floor(freq="D")
-    last_two_day = current - pd.Timedelta(days=2)
-    return last_two_day
-
-
-@pytest.fixture
-def forecast_time_24h() -> pd.Timedelta:
-    return pd.to_timedelta("24h")
-
-
-@pytest.fixture
-def cma_gfs_data_dir():
-    return "/g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG"
-
-
 def test_draw_plot(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir):
     data_dir = cma_gfs_data_dir
-    work_dir = "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc"
+    work_dir = "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc/api/draw"
     plot_type = "height_500_mslp"
     start_time = last_two_day
     forecast_time = forecast_time_24h
