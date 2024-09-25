@@ -4,7 +4,10 @@ from typing import Optional, Union
 import pandas as pd
 
 from cedarkit.maps.util import AreaRange
-from cemc_esmi_plots.config import JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig
+from cemc_esmi_plots.config import (
+    JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig,
+    get_default_data_file_name_template, get_default_data_dir
+)
 from cemc_esmi_plots.job import run_job
 
 
@@ -13,11 +16,24 @@ def draw_plot(
         plot_type: str,
         start_time: pd.Timestamp,
         forecast_time: pd.Timedelta,
-        data_dir: Union[str, Path],
-        work_dir: Union[str, Path],
-        data_file_name_template: str = None,
+        work_dir: Union[str, Path] = None,
+        data_dir: Union[str, Path] = None,
+        data_file_name_template: Optional[str] = None,
         area: Optional[AreaRange] = None,
 ):
+    if data_file_name_template is None:
+        data_file_name_template = get_default_data_file_name_template(system_name=system_name)
+    if data_file_name_template is None:
+        raise ValueError(f"can't get default data_file_name_template with system_name {system_name}")
+
+    if data_dir is None:
+        data_dir = get_default_data_dir(system_name=system_name)
+    if data_dir is None:
+        raise ValueError(f"can't get default data_dir with system_name {system_name}")
+
+    if work_dir is None:
+        work_dir = "."
+
     job_config = JobConfig(
         expr_config=ExprConfig(
             system_name=system_name,

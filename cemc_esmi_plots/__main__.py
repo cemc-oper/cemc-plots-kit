@@ -25,9 +25,9 @@ def draw(
         plot_type: str = typer.Option(),
         start_time: str = typer.Option(),
         forecast_time: str = typer.Option(),
-        data_dir = typer.Option(),
-        data_file_name_template = typer.Option(),
-        work_dir = typer.Option(),
+        data_dir = typer.Option(None),
+        data_file_name_template = typer.Option(None),
+        work_dir = typer.Option(None),
 ):
     start_time = parse_start_time(start_time)
     forecast_time = pd.to_timedelta(forecast_time)

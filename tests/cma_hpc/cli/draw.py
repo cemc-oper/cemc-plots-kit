@@ -20,7 +20,7 @@ def test_draw_height_500_mslp(runner, cma_gfs_system_name, cma_gfs_data_dir):
         "--forecast-time", "24h",
         "--data-dir", cma_gfs_data_dir,
         "--work-dir", "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc/cli/draw",
-        "--data-file-name-template", "gmf.gra.{start_time_label}{forecast_hour_label}.grb2",
+        # "--data-file-name-template", "gmf.gra.{start_time_label}{forecast_hour_label}.grb2",
     ])
 
     assert result.exit_code == 0

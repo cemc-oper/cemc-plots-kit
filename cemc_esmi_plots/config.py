@@ -106,3 +106,31 @@ def parse_start_time(start_time_str: str) -> pd.Timestamp:
     else:
         raise ValueError(f"start time string is not supported: {start_time_str}")
     return pd.to_datetime(start_time_str, format=format_str)
+
+
+def get_default_data_file_name_template(system_name: str) -> Optional[str]:
+    system_name = system_name.lower()
+    system_name = system_name.replace("-", "_")
+    if system_name in ["cma_gfs", "cma_gfs_gmf"]:
+        return "gmf.gra.{start_time_label}{forecast_hour_label}.grb2"
+    elif system_name in ["cma_meso","cma_meso_3km", "cma_meso_1km"]:
+        return "rmf.hgra.{start_time_label}{forecast_hour_label}.grb2"
+    elif system_name in ["cma_tym"]:
+        return "rmf.tcgra.{start_time_label}{forecast_hour_label}.grb2"
+    else:
+        return None
+
+
+def get_default_data_dir(system_name: str) -> Optional[str]:
+    system_name = system_name.lower()
+    system_name = system_name.replace("-", "_")
+    if system_name in ["cma_gfs", "cma_gfs_gmf"]:
+        return "/g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG"
+    elif system_name in ["cma_meso","cma_meso_3km", "cma_meso_1km"]:
+        return "/g3/COMMONDATA/OPER/CEMC/MESO_3KM/Prod-grib/{start_time_label}/ORIG"
+    elif system_name in ["cma_meso_1km"]:
+        return "/g3/COMMONDATA/OPER/CEMC/MESO_1KM/Prod-grib/{start_time_label}/ORIG"
+    elif system_name in ["cma_tym"]:
+        return "/g3/COMMONDATA/OPER/CEMC/TYM/Prod-grib/{start_time_label}/ORIG"
+    else:
+        return None
