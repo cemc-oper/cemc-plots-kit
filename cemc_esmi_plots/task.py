@@ -33,24 +33,26 @@ def run_task(task_file_path: Path):
     """
     task_config = load_task_config(task_file_path=task_file_path)
 
-    area_config = task_config["area"]
-    area = AreaRange(
-        start_latitude=area_config["start_latitude"],
-        end_latitude=area_config["end_latitude"],
-        start_longitude=area_config["start_longitude"],
-        end_longitude=area_config["end_longitude"],
-    )
+    area = None
+    if "area" in task_config:
+        area_config = task_config["area"]
+        area = AreaRange(
+            start_latitude=area_config["start_latitude"],
+            end_latitude=area_config["end_latitude"],
+            start_longitude=area_config["start_longitude"],
+            end_longitude=area_config["end_longitude"],
+        )
 
-    grib2_file_name_template = task_config["source"].get("grib2_file_name_template", None)
+    data_file_name_template = task_config["source"].get("data_file_name_template", None)
     expr_config = ExprConfig(
         system_name=task_config["system_name"],
         area=area,
-        source_grib2_dir=task_config["source"]["grib2_dir"],
-        grib2_file_name_template=grib2_file_name_template,
+        data_dir=task_config["source"]["grib2_dir"],
+        data_file_name_template=data_file_name_template,
     )
 
     runtime_config = RuntimeConfig(
-        work_dir=task_config["runtime"]["work_dir"],
+        **task_config["runtime"],
     )
 
     time_config = task_config["time"]

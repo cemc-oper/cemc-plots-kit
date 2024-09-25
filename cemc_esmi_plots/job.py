@@ -35,19 +35,32 @@ def run_job(job_config: JobConfig) -> list[Path]:
     List[Path]
         生成的图片路径列表
     """
+    runtime_config = job_config.runtime_config
+    plot_config = job_config.plot_config
+
     job_logger.info("creating work dir...")
-    current_work_dir = create_work_dir(job_config=job_config)
+    work_dir = runtime_config.work_dir
+    if work_dir is None:
+        current_work_dir = create_work_dir(job_config=job_config)
+    else:
+        current_work_dir = Path(work_dir)
+        current_work_dir.mkdir(exist_ok=True)
     job_logger.info(f"creating work dir... {current_work_dir}")
 
     job_logger.info("creating output image dir...")
-    output_image_dir = create_output_image_dir(job_config=job_config)
+    output_image_dir = runtime_config.output_dir
+    if output_image_dir is None:
+        output_image_dir = create_output_image_dir(job_config=job_config)
+    else:
+        output_image_dir = Path(output_image_dir)
+        output_image_dir.mkdir(exist_ok=True)
     job_logger.info(f"creating output image dir... {output_image_dir}")
 
     output_image_file_name = get_output_image_file_name(job_config=job_config)
     output_image_file_path = Path(output_image_dir, output_image_file_name)
     job_logger.info(f"output image file name: {output_image_file_name}")
 
-    plot_name = job_config.plot_config.plot_name
+    plot_name = plot_config.plot_name
     job_logger.info(f"loading plot module...")
     plot_module = get_plot_module(plot_name=plot_name)
     job_logger.info(f"get plot module: {plot_module.__name__}")
@@ -138,12 +151,14 @@ def get_output_image_file_name(job_config: JobConfig) -> str:
         输出图片文件名
     """
     time_config = job_config.time_config
+    plot_config = job_config.plot_config
+
+    plot_name = plot_config.plot_name
 
     start_time = time_config.start_time
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_time = time_config.forecast_time
     forecast_time_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
-    plot_name = job_config.plot_config.plot_name
 
     file_name = f"{plot_name}_{start_time_label}_{forecast_time_label}.png"
     return file_name

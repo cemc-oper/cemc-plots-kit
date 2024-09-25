@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -13,8 +13,8 @@ def draw_plot(
         plot_type: str,
         start_time: pd.Timestamp,
         forecast_time: pd.Timedelta,
-        data_dir: Path,
-        work_dir: Path,
+        data_dir: Union[str, Path],
+        work_dir: Union[str, Path],
         data_file_name_template: str = None,
         area: Optional[AreaRange] = None,
 ):
@@ -22,12 +22,12 @@ def draw_plot(
         expr_config=ExprConfig(
             system_name=system_name,
             area=area,
-            source_grib2_dir=data_dir,
-            grib2_file_name_template=data_file_name_template,
-
+            data_dir=data_dir,
+            data_file_name_template=data_file_name_template,
         ),
         runtime_config=RuntimeConfig(
             work_dir=work_dir,
+            output_dir=work_dir,
         ),
         time_config=TimeConfig(
             start_time=start_time,

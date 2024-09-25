@@ -51,8 +51,8 @@ class ExprLocalDataSource(DataSource):
             返回检索到的要素场，如果没找到则返回 None
         """
         # system -> data file
-        data_dir = self.expr_config.source_grib2_dir
-        data_file_name_template = self.expr_config.grib2_file_name_template
+        data_dir = self.expr_config.data_dir
+        data_file_name_template = self.expr_config.data_file_name_template
 
         file_path = get_local_file_path(
             data_dir=data_dir,

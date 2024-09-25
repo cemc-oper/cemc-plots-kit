@@ -1,5 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -13,23 +14,25 @@ class ExprConfig:
     试验参数，对于整个试验都保持不变的信息
     """
     system_name: str
-    area: AreaRange
-    source_grib2_dir: Path
-    grib2_file_name_template: str = "rmf.hgra.{start_time_label}{forecast_hour_label}.grb2"
+    data_dir: Union[str, Path]
+    area: Optional[AreaRange] = None
+    data_file_name_template: Optional[str] = "rmf.hgra.{start_time_label}{forecast_hour_label}.grb2"
 
 
 @dataclass
 class RuntimeConfig:
     """
-    运行参数
+    运行参数，每类绘图一个对象
     """
-    work_dir: Path
+    base_work_dir: Optional[Union[str, Path]] = None
+    work_dir: Optional[Union[str, Path]]  = None
+    output_dir: Optional[Union[str, Path]]  = None
 
 
 @dataclass
 class TimeConfig:
     """
-    时间参数，用于绘制不同时次、时效的图片
+    时间参数，用于绘制不同时次、时效的图片，每个绘图一个对象
     """
     start_time: pd.Timestamp
     forecast_time: pd.Timedelta
