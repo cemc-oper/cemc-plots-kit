@@ -20,16 +20,18 @@ def draw_plot(
         data_dir: Union[str, Path] = None,
         data_file_name_template: Optional[str] = None,
         area: Optional[AreaRange] = None,
-):
+) -> list[Path]:
     if data_file_name_template is None:
         data_file_name_template = get_default_data_file_name_template(system_name=system_name)
     if data_file_name_template is None:
-        raise ValueError(f"can't get default data_file_name_template with system_name {system_name}")
+        raise ValueError(f"Can't get default data_file_name_template with system_name {system_name}."
+                         f"Please set data_file_name_template parameter.")
 
     if data_dir is None:
         data_dir = get_default_data_dir(system_name=system_name)
     if data_dir is None:
-        raise ValueError(f"can't get default data_dir with system_name {system_name}")
+        raise ValueError(f"Can't get default data_dir with system_name {system_name}."
+                         f"Please set data_dir parameter.")
 
     if work_dir is None:
         work_dir = "."
@@ -54,4 +56,5 @@ def draw_plot(
         )
     )
 
-    run_job(job_config)
+    outputs = run_job(job_config)
+    return outputs

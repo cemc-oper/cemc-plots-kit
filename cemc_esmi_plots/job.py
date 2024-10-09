@@ -138,7 +138,7 @@ def create_output_image_dir(job_config: JobConfig) -> Path:
 
 def get_output_image_file_name(job_config: JobConfig) -> str:
     """
-    返回输出图片的文件名
+    使用作业配置信息生成输出图片文件名
 
     Parameters
     ----------

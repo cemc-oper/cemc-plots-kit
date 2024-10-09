@@ -109,6 +109,19 @@ def parse_start_time(start_time_str: str) -> pd.Timestamp:
 
 
 def get_default_data_file_name_template(system_name: str) -> Optional[str]:
+    """
+    返回默认数据文件名模板
+
+    Parameters
+    ----------
+    system_name
+        系统名称
+
+    Returns
+    -------
+    Optional[str]
+        数据文件名模板，如果不识别系统名则返回 None
+    """
     system_name = system_name.lower()
     system_name = system_name.replace("-", "_")
     if system_name in ["cma_gfs", "cma_gfs_gmf"]:
@@ -122,6 +135,19 @@ def get_default_data_file_name_template(system_name: str) -> Optional[str]:
 
 
 def get_default_data_dir(system_name: str) -> Optional[str]:
+    """
+    返回默认数据路径，默认数据存放在 CMA-HPC2023-A。
+
+    Parameters
+    ----------
+    system_name
+        系统名称
+
+    Returns
+    -------
+    Optional[str]
+        数据路径，如果不识别系统名称则返回 None
+    """
     system_name = system_name.lower()
     system_name = system_name.replace("-", "_")
     if system_name in ["cma_gfs", "cma_gfs_gmf"]:
