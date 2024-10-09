@@ -1,5 +1,6 @@
 import shutil
 
+import pytest
 import pandas as pd
 
 from cemc_esmi_plots.job import run_job
@@ -7,15 +8,18 @@ from cemc_esmi_plots.config import JobConfig, ExprConfig, RuntimeConfig, TimeCon
 
 
 
-def test_run_job(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir):
+@pytest.fixture
+def base_work_dir():
+    return "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc/api/job"
+
+
+def test_run_job(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir):
     system_name = cma_gfs_system_name
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
-    base_work_dir = "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc/api/job"
+    case_base_work_dir = base_work_dir
     plot_type = "height_500_mslp"
-
-    shutil.rmtree(base_work_dir, ignore_errors=True)
 
     job_config = JobConfig(
         expr_config=ExprConfig(
@@ -24,7 +28,7 @@ def test_run_job(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_d
             data_file_name_template="gmf.gra.{start_time_label}{forecast_hour_label}.grb2"
         ),
         runtime_config=RuntimeConfig(
-            base_work_dir=base_work_dir,
+            base_work_dir=case_base_work_dir,
         ),
         time_config=TimeConfig(
             start_time=start_time,
@@ -34,6 +38,8 @@ def test_run_job(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_d
             plot_name=plot_type,
         )
     )
+
+    shutil.rmtree(case_base_work_dir, ignore_errors=True)
 
     output_file_list = run_job(job_config)
     assert len(output_file_list) == 1
