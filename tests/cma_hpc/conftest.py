@@ -1,12 +1,21 @@
 import sys
+import os
 
 import pytest
 import pandas as pd
 from loguru import logger
 
+from cedarkit.maps.util import AreaRange
+
 
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
+
+
+@pytest.fixture
+def root_work_dir():
+    job_dir = os.environ["JOBDIR"]
+    return f"{job_dir}/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc"
 
 
 @pytest.fixture
@@ -29,3 +38,8 @@ def forecast_time_24h() -> pd.Timedelta:
 @pytest.fixture
 def cma_gfs_data_dir():
     return "/g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG"
+
+
+@pytest.fixture
+def area_north_china() -> AreaRange:
+    return AreaRange.from_tuple((105, 125, 34, 45))

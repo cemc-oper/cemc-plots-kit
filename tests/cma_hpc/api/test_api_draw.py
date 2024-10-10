@@ -9,8 +9,8 @@ from cemc_esmi_plots.draw import draw_plot
 
 
 @pytest.fixture
-def base_work_dir():
-    return "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc/api/draw"
+def base_work_dir(root_work_dir):
+    return f"{root_work_dir}/api/draw"
 
 
 def test_draw_plot(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir):
@@ -19,7 +19,7 @@ def test_draw_plot(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
-    work_dir = base_work_dir
+    work_dir = f"{base_work_dir}/{system_name}/{plot_type}"
     data_file_name_template = "gmf.gra.{start_time_label}{forecast_hour_label}.grb2"
 
     start_time_label = start_time.strftime("%Y%m%d%H")

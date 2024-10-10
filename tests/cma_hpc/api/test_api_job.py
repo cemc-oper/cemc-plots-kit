@@ -9,17 +9,17 @@ from cemc_esmi_plots.config import JobConfig, ExprConfig, RuntimeConfig, TimeCon
 
 
 @pytest.fixture
-def base_work_dir():
-    return "/g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc/api/job"
+def base_work_dir(root_work_dir):
+    return f"{root_work_dir}/api/job"
 
 
 def test_run_job(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir):
     system_name = cma_gfs_system_name
+    plot_type = "height_500_mslp"
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
-    case_base_work_dir = base_work_dir
-    plot_type = "height_500_mslp"
+    case_base_work_dir = f"{base_work_dir}/{system_name}/{plot_type}"
 
     job_config = JobConfig(
         expr_config=ExprConfig(
