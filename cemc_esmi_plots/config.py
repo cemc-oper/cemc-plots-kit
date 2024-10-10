@@ -16,7 +16,7 @@ class ExprConfig:
     system_name: str
     data_dir: Union[str, Path]
     area: Optional[AreaRange] = None
-    data_file_name_template: Optional[str] = "rmf.hgra.{start_time_label}{forecast_hour_label}.grb2"
+    data_file_name_template: Optional[str] = None
 
 
 @dataclass

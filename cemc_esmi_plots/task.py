@@ -7,7 +7,8 @@ from cedarkit.maps.util import AreaRange
 
 from cemc_esmi_plots.logger import get_logger
 from cemc_esmi_plots.config import (
-    ExprConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time, RuntimeConfig
+    ExprConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time, RuntimeConfig,
+    get_default_data_file_name_template,
 )
 from cemc_esmi_plots.job import run_job
 from cemc_esmi_plots.plots import get_plot_module
@@ -42,12 +43,17 @@ def run_task(task_file_path: Path):
             start_longitude=area_config["start_longitude"],
             end_longitude=area_config["end_longitude"],
         )
-
+    system_name = task_config["system_name"]
     data_file_name_template = task_config["source"].get("data_file_name_template", None)
+    if data_file_name_template is None:
+        data_file_name_template = get_default_data_file_name_template(system_name=system_name)
+    if data_file_name_template is None:
+        raise ValueError(f"Can't get default data_file_name_template with system_name {system_name}."
+                         f"Please set data_file_name_template parameter.")
     expr_config = ExprConfig(
-        system_name=task_config["system_name"],
+        system_name=system_name,
         area=area,
-        data_dir=task_config["source"]["grib2_dir"],
+        data_dir=task_config["source"]["data_dir"],
         data_file_name_template=data_file_name_template,
     )
 
