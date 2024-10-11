@@ -92,7 +92,7 @@ def run_task(task_file_path: Path):
             plot_config = PlotConfig(plot_name=plot_name)
 
             if not plot_module.check_available(time_config=time_config, plot_config=plot_config):
-                task_logger.debug(f"skip job because of time: {plot_name} {start_time} {forecast_time}")
+                task_logger.debug(f"skip job because of time: [{plot_name}] [{start_time}] [{forecast_time}]")
                 continue
 
             job_config = JobConfig(
@@ -144,5 +144,7 @@ def run_by_serial(job_configs: list[JobConfig]):
         task_logger.info(f"  [{job_config.plot_config.plot_name}] "
                          f"[{job_config.time_config.start_time}] "
                          f"[{job_config.time_config.forecast_time}]")
+        job_start_time = pd.Timestamp.now()
         output_image_file_path = run_job(job_config=job_config)
-        task_logger.info(f"job {i+1}/{count} done")
+        job_end_time = pd.Timestamp.now()
+        task_logger.info(f"job {i+1}/{count} done. time: {job_end_time - job_start_time}")
