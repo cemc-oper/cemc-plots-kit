@@ -47,12 +47,12 @@ plots:
     run_task(task_file_path=task_file_path)
 
 
-def test_run_task_area(cma_gfs_system_name, last_two_day, cma_gfs_data_dir, base_work_dir, area_north_china):
+def test_run_task_area(cma_gfs_system_name, last_two_day, cma_gfs_data_dir, base_work_dir, cn_area_north_china):
     system_name = cma_gfs_system_name
     start_time = last_two_day
     start_time_label = start_time.strftime("%Y%m%d%H")
     data_dir = cma_gfs_data_dir
-    area = area_north_china
+    area = cn_area_north_china.area
     case_base_work_dir = f"{base_work_dir}/north_china/{system_name}"
     task_file_path = Path(case_base_work_dir) / "task.yaml"
 
