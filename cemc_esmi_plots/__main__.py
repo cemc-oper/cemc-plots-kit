@@ -3,6 +3,8 @@ from pathlib import Path
 import typer
 import pandas as pd
 
+from cedarkit.maps.util import AreaRange
+
 from cemc_esmi_plots.task import run_task
 from cemc_esmi_plots.draw import draw_plot
 from cemc_esmi_plots.config import parse_start_time
@@ -28,9 +30,18 @@ def draw(
         data_dir = typer.Option(None),
         data_file_name_template = typer.Option(None),
         work_dir = typer.Option(None),
+        area = typer.Option(None, help="plot area, default is CN, format: start_longitude,end_longitude,start_latitude,end_latitude"),
 ):
     start_time = parse_start_time(start_time)
     forecast_time = pd.to_timedelta(forecast_time)
+
+    if area is not None:
+        area_tokens = area.split(',')
+        if len(area_tokens) != 4:
+            raise ValueError(f"Invalid area {area}, area format is start_longitude,end_longitude,start_latitude,end_latitude")
+        area_tokens_float = [float(i) for i in area_tokens]
+        area = AreaRange.from_tuple(area_tokens_float)
+
     draw_plot(
         system_name=system_name,
         plot_type=plot_type,
@@ -39,6 +50,7 @@ def draw(
         data_dir=data_dir,
         data_file_name_template=data_file_name_template,
         work_dir=work_dir,
+        area=area,
     )
 
 
