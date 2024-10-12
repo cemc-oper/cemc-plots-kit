@@ -7,7 +7,7 @@ import xarray as xr
 from cedar_graph.data import DataSource, FieldInfo
 from cedar_graph.data.source import get_field_from_file
 
-from cemc_esmi_plots.config import ExprConfig
+from cemc_plots_kit.config import ExprConfig
 
 
 class ExprLocalDataSource(DataSource):

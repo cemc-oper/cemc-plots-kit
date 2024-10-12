@@ -3,16 +3,16 @@ import pandas as pd
 from cedarkit.maps.chart import Panel
 
 from cedar_graph.data import DataLoader
-from cedar_graph.plots.cn.prep_24h.default import PlotData, PlotMetadata, plot, load_data
+from cedar_graph.plots.cn.rain_24h.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import ExprLocalDataSource
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
-from cemc_esmi_plots.logger import get_logger
+from cemc_plots_kit.source import ExprLocalDataSource
+from cemc_plots_kit.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
+from cemc_plots_kit.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
-PLOT_NAME = "prep_24h"
+PLOT_NAME = "rain_24h"
 
 plot_logger = get_logger(PLOT_NAME)
 

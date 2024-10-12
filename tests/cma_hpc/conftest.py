@@ -17,7 +17,7 @@ logger.add(sys.stderr, level="WARNING")
 @pytest.fixture
 def root_work_dir():
     job_dir = os.environ["JOBDIR"]
-    return f"{job_dir}/workspace/cedarkit/cemc_esmi_plots/tests/cma_hpc"
+    return f"{job_dir}/workspace/cedarkit/cemc_plots_kit/tests/cma_hpc"
 
 
 @pytest.fixture

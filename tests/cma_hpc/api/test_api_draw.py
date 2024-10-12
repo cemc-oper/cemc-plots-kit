@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 
 from cedarkit.maps.util import AreaRange
-from cemc_esmi_plots.draw import draw_plot
+from cemc_plots_kit.draw import draw_plot
 
 
 @pytest.fixture

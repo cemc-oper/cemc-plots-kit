@@ -4,9 +4,9 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from cemc_esmi_plots.config import JobConfig
-from cemc_esmi_plots.plots import get_plot_module
-from cemc_esmi_plots.logger import get_logger
+from cemc_plots_kit.config import JobConfig
+from cemc_plots_kit.plots import get_plot_module
+from cemc_plots_kit.logger import get_logger
 
 
 job_logger = get_logger("job")

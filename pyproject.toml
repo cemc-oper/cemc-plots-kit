@@ -3,11 +3,11 @@ requires = ["setuptools>=64", "setuptools_scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cemc-esmi-plots"
+name = "cemc-plots-kit"
 authors = [
     {name="Wang Dapeng", email="perillaroc@gmail.com"}
 ]
-description = "Plots for ESMI in CEMC."
+description = "Plots tool in CEMC."
 readme = "README.md"
 keywords = ["graphic", "cemc", "cedarkit"]
 license = { text = "Apache-2.0" }
@@ -37,8 +37,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "http://codingcorp.mc.met.cma/public/cedarkit/cemc-esmi-plots/git/files/"
-Repository = "http://e.mc.met.cma/codingcorp/cedarkit/cemc-esmi-plots.git"
+Homepage = "http://codingcorp.mc.met.cma/public/cedarkit/cemc-plots-kit/git/files/"
+Repository = "http://e.mc.met.cma/codingcorp/cedarkit/cemc-plots-kit.git"
 
 [project.optional-dependencies]
 test = ["pytest"]
@@ -53,4 +53,4 @@ namespaces = false
 include-package-data = true
 
 [tool.setuptools_scm]
-version_file = "cemc_esmi_plots/_version.py"
+version_file = "cemc_plots_kit/_version.py"

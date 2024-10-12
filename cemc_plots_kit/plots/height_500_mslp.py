@@ -1,23 +1,32 @@
-import pandas as pd
-
 from cedarkit.maps.chart import Panel
 
 from cedar_graph.data import DataLoader
-from cedar_graph.plots.cn.rain_24h.default import PlotData, PlotMetadata, plot, load_data
+from cedar_graph.plots.cn.height_500_mslp.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import ExprLocalDataSource
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
-from cemc_esmi_plots.logger import get_logger
+from cemc_plots_kit.source import ExprLocalDataSource
+from cemc_plots_kit.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
+from cemc_plots_kit.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
-
-PLOT_NAME = "rain_24h"
-
+PLOT_NAME = "height_500_mslp"
 plot_logger = get_logger(PLOT_NAME)
 
 
 def run_plot(job_config: JobConfig) -> Panel:
+    """
+    根据作业配置 (``job_config``) 绘制图片。
+
+    Parameters
+    ----------
+    job_config
+        作业配置
+
+    Returns
+    -------
+    Panel
+        绘图板
+    """
     expr_config = job_config.expr_config
     time_config = job_config.time_config
     plot_config = job_config.plot_config
@@ -34,7 +43,7 @@ def run_plot(job_config: JobConfig) -> Panel:
     )
 
     plot_logger.info("loading data...")
-    plot_data = load(
+    plot_data = _load(
         expr_config=expr_config,
         time_config=time_config,
     )
@@ -55,10 +64,38 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
-    return time_config.forecast_time >= pd.Timedelta(hours=24)
+    """
+    检查是否可以用时间组合绘制当前图片，比如 24 小时降水要求预报时效大于等于 24 小时。
+
+    Parameters
+    ----------
+    time_config
+    plot_config
+
+    Returns
+    -------
+    bool
+        是否可以绘制
+    """
+    return True
 
 
-def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+def _load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
+    """
+    从实验数据中加载绘图需要的要素场
+
+    Parameters
+    ----------
+    expr_config
+        试验信息，用于创建 ``ExprLocalDataSource``
+    time_config
+        时间信息
+
+    Returns
+    -------
+    PlotData
+        绘图需要的要素场，由 cedar_graph 包定义
+    """
     # system -> data file
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time

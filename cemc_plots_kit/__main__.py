@@ -5,9 +5,9 @@ import pandas as pd
 
 from cedarkit.maps.util import AreaRange
 
-from cemc_esmi_plots.task import run_task
-from cemc_esmi_plots.draw import draw_plot
-from cemc_esmi_plots.config import parse_start_time
+from cemc_plots_kit.task import run_task
+from cemc_plots_kit.draw import draw_plot
+from cemc_plots_kit.config import parse_start_time
 
 
 app = typer.Typer()

@@ -1,9 +1,9 @@
-# cemc-esmi-plots
+# cemc-plots-kit
 
-适用于 CEMC 科创平台的绘图工具。
+CEMC 业务绘图工具。
 
 ## LICENSE
 
 Copyright &copy; 2024, developers at cemc-oper.
 
-`cemc-esmi-plots` is licensed under [Apache License V2.0](./LICENSE)
+`cemc-plots-kit` is licensed under [Apache License V2.0](./LICENSE)

@@ -5,13 +5,13 @@ import pandas as pd
 
 from cedarkit.maps.util import AreaRange
 
-from cemc_esmi_plots.logger import get_logger
-from cemc_esmi_plots.config import (
+from cemc_plots_kit.logger import get_logger
+from cemc_plots_kit.config import (
     ExprConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time, RuntimeConfig,
     get_default_data_file_name_template,
 )
-from cemc_esmi_plots.job import run_job
-from cemc_esmi_plots.plots import get_plot_module
+from cemc_plots_kit.job import run_job
+from cemc_plots_kit.plots import get_plot_module
 
 
 task_logger = get_logger(__name__)

@@ -1,32 +1,24 @@
+import pandas as pd
+
 from cedarkit.maps.chart import Panel
 
 from cedar_graph.data import DataLoader
-from cedar_graph.plots.cn.height_500_mslp.default import PlotData, PlotMetadata, plot, load_data
+from cedar_graph.plots.cn.rain_wind_10m.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import ExprLocalDataSource
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
-from cemc_esmi_plots.logger import get_logger
+from cemc_plots_kit.source import ExprLocalDataSource
+from cemc_plots_kit.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
+from cemc_plots_kit.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
-PLOT_NAME = "height_500_mslp"
+
+PLOT_NAME = "rain_6h_wind_10m"
+RAIN_FORECAST_TIME_INTERVAL = pd.Timedelta(hours=6)
+
 plot_logger = get_logger(PLOT_NAME)
 
 
 def run_plot(job_config: JobConfig) -> Panel:
-    """
-    根据作业配置 (``job_config``) 绘制图片。
-
-    Parameters
-    ----------
-    job_config
-        作业配置
-
-    Returns
-    -------
-    Panel
-        绘图板
-    """
     expr_config = job_config.expr_config
     time_config = job_config.time_config
     plot_config = job_config.plot_config
@@ -40,10 +32,11 @@ def run_plot(job_config: JobConfig) -> Panel:
         forecast_time=forecast_time,
         system_name=system_name,
         area_range=expr_config.area,
+        interval=RAIN_FORECAST_TIME_INTERVAL,
     )
 
     plot_logger.info("loading data...")
-    plot_data = _load(
+    plot_data = load(
         expr_config=expr_config,
         time_config=time_config,
     )
@@ -64,38 +57,10 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
-    """
-    检查是否可以用时间组合绘制当前图片，比如 24 小时降水要求预报时效大于等于 24 小时。
-
-    Parameters
-    ----------
-    time_config
-    plot_config
-
-    Returns
-    -------
-    bool
-        是否可以绘制
-    """
-    return True
+    return time_config.forecast_time >= pd.Timedelta(hours=6)
 
 
-def _load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
-    """
-    从实验数据中加载绘图需要的要素场
-
-    Parameters
-    ----------
-    expr_config
-        试验信息，用于创建 ``ExprLocalDataSource``
-    time_config
-        时间信息
-
-    Returns
-    -------
-    PlotData
-        绘图需要的要素场，由 cedar_graph 包定义
-    """
+def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     # system -> data file
     start_time = time_config.start_time
     forecast_time = time_config.forecast_time
@@ -103,5 +68,10 @@ def _load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     data_source = ExprLocalDataSource(expr_config=expr_config)
     data_loader = DataLoader(data_source=data_source)
 
-    plot_data = load_data(data_loader=data_loader, start_time=start_time, forecast_time=forecast_time)
+    plot_data = load_data(
+        data_loader=data_loader,
+        start_time=start_time,
+        forecast_time=forecast_time,
+        interval=RAIN_FORECAST_TIME_INTERVAL,
+    )
     return plot_data

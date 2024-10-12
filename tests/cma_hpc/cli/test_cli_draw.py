@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 
-from cemc_esmi_plots.__main__ import app
+from cemc_plots_kit.__main__ import app
 
 
 @pytest.fixture

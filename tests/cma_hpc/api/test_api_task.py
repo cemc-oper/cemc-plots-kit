@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from cemc_esmi_plots.task import run_task
+from cemc_plots_kit.task import run_task
 
 
 @pytest.fixture

@@ -128,4 +128,4 @@ celerybeat.pid
 
 .vscode
 
-cemc_plot_kit/_version.py
+cemc_plots_kit/_version.py

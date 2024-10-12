@@ -4,11 +4,11 @@ from typing import Optional, Union
 import pandas as pd
 
 from cedarkit.maps.util import AreaRange
-from cemc_esmi_plots.config import (
+from cemc_plots_kit.config import (
     JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig,
     get_default_data_file_name_template, get_default_data_dir
 )
-from cemc_esmi_plots.job import run_job
+from cemc_plots_kit.job import run_job
 
 
 def draw_plot(

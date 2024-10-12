@@ -3,17 +3,16 @@ import pandas as pd
 from cedarkit.maps.chart import Panel
 
 from cedar_graph.data import DataLoader
-from cedar_graph.plots.cn.rain_wind_10m.default import PlotData, PlotMetadata, plot, load_data
+from cedar_graph.plots.cn.prep_24h.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.source import ExprLocalDataSource
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
-from cemc_esmi_plots.logger import get_logger
+from cemc_plots_kit.source import ExprLocalDataSource
+from cemc_plots_kit.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
+from cemc_plots_kit.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
-PLOT_NAME = "rain_3h_wind_10m"
-RAIN_FORECAST_TIME_INTERVAL = pd.Timedelta(hours=3)
+PLOT_NAME = "prep_24h"
 
 plot_logger = get_logger(PLOT_NAME)
 
@@ -32,7 +31,6 @@ def run_plot(job_config: JobConfig) -> Panel:
         forecast_time=forecast_time,
         system_name=system_name,
         area_range=expr_config.area,
-        interval=RAIN_FORECAST_TIME_INTERVAL,
     )
 
     plot_logger.info("loading data...")
@@ -57,7 +55,7 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
-    return time_config.forecast_time >= pd.Timedelta(hours=3)
+    return time_config.forecast_time >= pd.Timedelta(hours=24)
 
 
 def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
@@ -68,10 +66,5 @@ def load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     data_source = ExprLocalDataSource(expr_config=expr_config)
     data_loader = DataLoader(data_source=data_source)
 
-    plot_data = load_data(
-        data_loader=data_loader,
-        start_time=start_time,
-        forecast_time=forecast_time,
-        interval=RAIN_FORECAST_TIME_INTERVAL,
-    )
+    plot_data = load_data(data_loader=data_loader, start_time=start_time, forecast_time=forecast_time)
     return plot_data

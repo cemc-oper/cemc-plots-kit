@@ -3,8 +3,8 @@ import shutil
 import pytest
 import pandas as pd
 
-from cemc_esmi_plots.job import run_job
-from cemc_esmi_plots.config import JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig
+from cemc_plots_kit.job import run_job
+from cemc_plots_kit.config import JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig
 
 
 

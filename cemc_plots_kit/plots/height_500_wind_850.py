@@ -1,16 +1,16 @@
 from cedarkit.maps.chart import Panel
 
 from cedar_graph.data import DataLoader
-from cedar_graph.plots.cn.radar_reflectivity.default import PlotData, PlotMetadata, plot, load_data
+from cedar_graph.plots.cn.height_500_wind_850.default import PlotData, PlotMetadata, plot, load_data
 
-from cemc_esmi_plots.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
-from cemc_esmi_plots.logger import get_logger
-from cemc_esmi_plots.source import ExprLocalDataSource
+from cemc_plots_kit.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
+from cemc_plots_kit.source import ExprLocalDataSource
+from cemc_plots_kit.logger import get_logger
 
 
 # set_default_map_loader_package("cedarkit.maps.map.cemc")
 
-PLOT_NAME = "radar_reflectivity"
+PLOT_NAME = "height_500_wind_850"
 
 plot_logger = get_logger(PLOT_NAME)
 
