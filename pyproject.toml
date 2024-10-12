@@ -7,7 +7,7 @@ name = "cemc-plots-kit"
 authors = [
     {name="Wang Dapeng", email="perillaroc@gmail.com"}
 ]
-description = "Plots tool in CEMC."
+description = "Plots tool for CEMC's NWP Opearting systems."
 readme = "README.md"
 keywords = ["graphic", "cemc", "cedarkit"]
 license = { text = "Apache-2.0" }
@@ -33,12 +33,12 @@ dependencies = [
     "reki>=2024.4.0",
     "cedarkit-comp>=2024.4.0",
     "cedarkit-maps>=2024.4.0",
-    "cedar-graph",
+    "cedar-graph>=2024.10.0",
 ]
 
 [project.urls]
-Homepage = "http://codingcorp.mc.met.cma/public/cedarkit/cemc-plots-kit/git/files/"
-Repository = "http://e.mc.met.cma/codingcorp/cedarkit/cemc-plots-kit.git"
+Homepage = "https://github.com/cemc-oper/cemc-plots-kit"
+Repository = "https://github.com/cemc-oper/cemc-plots-kit.git"
 
 [project.optional-dependencies]
 test = ["pytest"]

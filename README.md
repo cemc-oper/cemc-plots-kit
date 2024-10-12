@@ -1,6 +1,6 @@
 # cemc-plots-kit
 
-CEMC 业务绘图工具。
+适用于 CEMC 数值天气预报模式数据的绘图工具。
 
 ## LICENSE
 
