@@ -13,13 +13,16 @@ from cemc_plots_kit.config import parse_start_time
 app = typer.Typer()
 
 
-@app.command()
-def task(task_file: Path = typer.Option()):
+@app.command(
+    help="draw multiple plots using a task file.",
+)
+def task(task_file: Path = typer.Option(..., help="task file path.")):
     run_task(task_file_path=task_file)
 
 
 @app.command(
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+    help="draw a plot",
 )
 def draw(
         ctx: typer.Context,

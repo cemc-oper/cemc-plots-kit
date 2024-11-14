@@ -102,12 +102,12 @@ def get_local_file_path(
     Examples
     --------
     >>> get_local_file_path(
-    ...     data_dir="/grib2/dir",
+    ...     data_dir="/grib2/dir/{start_time_label}",
     ...     data_file_name_template="rmf.hgra.{start_time_label}{forecast_hour_label}.grb2",
     ...     start_time=pd.to_datetime("2023-09-23 00:00"),
     ...     forecast_time=pd.to_timedelta("24h"),
     ... )
-    PosixPath('/grib2/dir/rmf.hgra.2023092300024.grb2')
+    PosixPath('/grib2/dir/2023092300/rmf.hgra.2023092300024.grb2')
 
     """
     start_time_label = start_time.strftime("%Y%m%d%H")
@@ -127,3 +127,15 @@ def get_local_file_path(
 
     file_path = Path(data_dir_str, file_name)
     return file_path
+
+
+def fill_string_with_time(some_string: str, start_time: pd.Timestamp, forecast_time: pd.Timedelta) -> str:
+    start_time_label = start_time.strftime("%Y%m%d%H")
+    forecast_hour = int(forecast_time / pd.Timedelta(hours=1))
+    forecat_hour_label = f"{forecast_hour:03d}"
+
+    result_str = some_string.format(
+        start_time_label=start_time_label,
+        forecast_hour_label=forecat_hour_label,
+    )
+    return result_str

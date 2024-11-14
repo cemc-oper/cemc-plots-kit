@@ -15,17 +15,17 @@ plot_logger = get_logger(PLOT_NAME)
 
 def run_plot(job_config: JobConfig) -> Panel:
     """
-    根据作业配置 (``job_config``) 绘制图片。
+    Plot a figure using job configuration (``job_config``).
 
     Parameters
     ----------
     job_config
-        作业配置
+        job configuration
 
     Returns
     -------
     Panel
-        绘图板
+        plot panel object
     """
     expr_config = job_config.expr_config
     time_config = job_config.time_config
@@ -65,7 +65,8 @@ def run_plot(job_config: JobConfig) -> Panel:
 
 def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     """
-    检查是否可以用时间组合绘制当前图片，比如 24 小时降水要求预报时效大于等于 24 小时。
+    Check if the current image can be plotted with the time combination.
+    For example, the 24-hour precipitation forecast requires a forecast lead time of at least 24 hours.
 
     Parameters
     ----------
@@ -75,26 +76,26 @@ def check_available(time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     Returns
     -------
     bool
-        是否可以绘制
+        whether it is possible to plot
     """
     return True
 
 
 def _load(expr_config: ExprConfig, time_config: TimeConfig) -> PlotData:
     """
-    从实验数据中加载绘图需要的要素场
+    Load required fields for plotting from data.
 
     Parameters
     ----------
     expr_config
-        试验信息，用于创建 ``ExprLocalDataSource``
+        experiment configuration which is used to create ``ExprLocalDataSource``
     time_config
-        时间信息
+        time configuration
 
     Returns
     -------
     PlotData
-        绘图需要的要素场，由 cedar_graph 包定义
+        required fields for plotting, defined in cedar_graph package.
     """
     # system -> data file
     start_time = time_config.start_time

@@ -21,6 +21,31 @@ def draw_plot(
         data_file_name_template: Optional[str] = None,
         area: Optional[AreaRange] = None,
 ) -> list[Path]:
+    """
+    Draw a figure and save in working directory
+
+    Parameters
+    ----------
+    system_name
+        system name
+    plot_type
+        type of plot
+    start_time
+    forecast_time
+    work_dir
+        working directory
+    data_dir
+        data directory
+    data_file_name_template
+        data file name template
+    area
+        plot area, default is CN.
+
+    Returns
+    -------
+    list[Path]
+        path list of generated figures
+    """
     if data_file_name_template is None:
         data_file_name_template = get_default_data_file_name_template(system_name=system_name)
     if data_file_name_template is None:

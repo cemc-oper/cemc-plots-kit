@@ -14,26 +14,26 @@ job_logger = get_logger("job")
 
 def run_job(job_config: JobConfig) -> list[Path]:
     """
-    运行一个绘图作业，包括如下步骤：
+    Run a plot job, involves the following steps:
 
-    * 创建工作目录
-    * 创建输入图片保存目录
-    * 加载绘图模块
-    * 进入到工作目录
-    * 执行绘图函数
-    * 保存图片结果
-    * 清理内存
-    * 恢复当前目录
+    * create working directory
+    * create a directory fore saving output figure
+    * load plotting module
+    * enter working directory
+    * run plot function
+    * save the result figure
+    * clean memory
+    * enter current directory
 
     Parameters
     ----------
     job_config
-        作业配置，代表一个绘图作业
+        job configuration which represents a single plot job.
 
     Returns
     -------
     List[Path]
-        生成的图片路径列表
+        path list for generated figures.
     """
     runtime_config = job_config.runtime_config
     plot_config = job_config.plot_config
@@ -90,17 +90,18 @@ def run_job(job_config: JobConfig) -> list[Path]:
 
 def create_work_dir(job_config: JobConfig) -> Path:
     """
-    为一个绘图作业创建运行目录，目录位置 ``{base_work_dir}/{start_time_label}/{plot_name}/{forecast_time_label}``
+    Create a working directory for a plot job using ``base_work_dir``.
+    Directory location ``{base_work_dir}/{start_time_label}/{plot_name}/{forecast_time_label}``
 
     Parameters
     ----------
     job_config
-        作业配置
+        job configuration which represents a single plot job.
 
     Returns
     -------
     Path
-        运行目录
+        working directory.
     """
     base_work_dir = job_config.runtime_config.base_work_dir
     time_config = job_config.time_config
@@ -118,17 +119,18 @@ def create_work_dir(job_config: JobConfig) -> Path:
 
 def create_output_image_dir(job_config: JobConfig) -> Path:
     """
-    创建输出图片保存目录，目录路径 ``{base_work_dir}/output``
+    Create the output image directory for saving.
+    Directory location ``{base_work_dir}/output``.
 
     Parameters
     ----------
     job_config
-        作业配置
+        job configuration which represents a single plot job.
 
     Returns
     -------
     Path
-        输出图片保存目录
+        output image directory.
     """
     base_work_dir = job_config.runtime_config.base_work_dir
     output_image_dir = Path(base_work_dir, "output")
@@ -138,17 +140,17 @@ def create_output_image_dir(job_config: JobConfig) -> Path:
 
 def get_output_image_file_name(job_config: JobConfig) -> str:
     """
-    使用作业配置信息生成输出图片文件名
+    Generate output image file name using job configuration.
 
     Parameters
     ----------
     job_config
-        作业配置
+        job configuration which represents a single plot job.
 
     Returns
     -------
     str
-        输出图片文件名
+        output image file path.
     """
     time_config = job_config.time_config
     plot_config = job_config.plot_config

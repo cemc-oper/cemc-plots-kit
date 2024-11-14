@@ -11,7 +11,18 @@ from cedarkit.maps.util import AreaRange
 @dataclass
 class ExprConfig:
     """
-    试验参数，对于整个试验都保持不变的信息
+    Experiment parameters which remains consistent for all data in the experiment.
+
+    Attributes
+    ----------
+    system_name
+        Name of the system which will be shown in top left of the figure.
+    data_dir
+        Path to the data directory, may be a template.
+    area
+        Plot area, default is CN.
+    data_file_name_template
+        File name template for data.
     """
     system_name: str
     data_dir: Union[str, Path]
@@ -22,7 +33,14 @@ class ExprConfig:
 @dataclass
 class RuntimeConfig:
     """
-    运行参数，每类绘图一个对象
+    Runtime parameters, one object for each type of plot.
+
+    base_work_dir
+        Base directory for plots, used if ``work_dir`` is not specified.
+    work_dir
+        Directory for some plot.
+    output_dir
+        Figures will be saved to this directory.
     """
     base_work_dir: Optional[Union[str, Path]] = None
     work_dir: Optional[Union[str, Path]]  = None
@@ -32,7 +50,12 @@ class RuntimeConfig:
 @dataclass
 class TimeConfig:
     """
-    时间参数，用于绘制不同时次、时效的图片，每个绘图一个对象
+    Time parameters to plot figures for different start time and different forecast time, one object for one figure.
+
+    Attributes
+    ----------
+    start_time
+    forecast_time
     """
     start_time: pd.Timestamp
     forecast_time: pd.Timedelta
@@ -41,7 +64,10 @@ class TimeConfig:
 @dataclass
 class PlotConfig:
     """
-    绘图参数，定义绘图需要的定制参数，每类绘图一个对象
+    Plot parameters, defining customized parameters for plotting, one object for each type of plot.
+
+    plot_name
+        Name of a plot type.
     """
     plot_name: str
 
@@ -49,12 +75,19 @@ class PlotConfig:
 @dataclass
 class JobConfig:
     """
-    单次绘图作业的配置信息，包括
+    Config information for each plot job, including:
 
-    * 试验配置
-    * 时间参数
-    * 运行时参数
-    * 绘图参数
+    * Experiment configuration
+    * Time parameters
+    * Runtime parameters
+    * Plot parameters
+
+    Attributes
+    ----------
+    expr_config
+    time_config
+    runtime_config
+    plot_config
     """
     expr_config: ExprConfig
     time_config: TimeConfig
@@ -64,34 +97,34 @@ class JobConfig:
 
 def parse_start_time(start_time_str: str) -> pd.Timestamp:
     """
-    解析起报时间
+    Parse start time string.
 
     Parameters
     ----------
     start_time_str
-        起报时次字符串，支持格式：
+        Start time string, supportting format:
 
-        * YYYYMMDDHHMM: 年月日时分
-        * YYYYMMDDHH: 年月日时
+        * YYYYMMDDHHMM: Year month day hour miniute
+        * YYYYMMDDHH: Year month day hour
 
     Returns
     -------
     pd.Timestamp
-        解析后的时间对象
+        Parsed time object
 
     Examples
     --------
-    年月日时分
+    Year month day hour minute
 
     >>> parse_start_time("202409230000")
     Timestamp('2024-09-23 00:00:00')
 
-    年月日时
+    Year month day hour
 
     >>> parse_start_time("2024092300")
     Timestamp('2024-09-23 00:00:00')
 
-    年月日
+    Year month day
 
     >>> parse_start_time("20240923")
     Timestamp('2024-09-23 00:00:00')
@@ -110,17 +143,21 @@ def parse_start_time(start_time_str: str) -> pd.Timestamp:
 
 def get_default_data_file_name_template(system_name: str) -> Optional[str]:
     """
-    返回默认数据文件名模板
+    Return the default data filename template.
 
     Parameters
     ----------
     system_name
-        系统名称
+        name of system, supporting:
+
+        * cma_gfs, cma_gfs_gmf
+        * cma_meso, cma_meso_3km, cma_meso_1km
+        * cma_tym
 
     Returns
     -------
     Optional[str]
-        数据文件名模板，如果不识别系统名则返回 None
+        data file name template. If system name is not supported, return None.
     """
     system_name = system_name.lower()
     system_name = system_name.replace("-", "_")
@@ -136,17 +173,21 @@ def get_default_data_file_name_template(system_name: str) -> Optional[str]:
 
 def get_default_data_dir(system_name: str) -> Optional[str]:
     """
-    返回默认数据路径，默认数据存放在 CMA-HPC2023-A。
+    Return default data directory. Default data is stored in CMA-HPC SC1.
 
     Parameters
     ----------
     system_name
-        系统名称
+        name of system, supporting:
+
+        * cma_gfs, cma_gfs_gmf
+        * cma_meso, cma_meso_3km, cma_meso_1km
+        * cma_tym
 
     Returns
     -------
     Optional[str]
-        数据路径，如果不识别系统名称则返回 None
+        data file path. If system name is not supported, return None.
     """
     system_name = system_name.lower()
     system_name = system_name.replace("-", "_")

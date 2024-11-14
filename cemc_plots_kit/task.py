@@ -19,18 +19,19 @@ task_logger = get_logger(__name__)
 
 def run_task(task_file_path: Path):
     """
-    执行任务文件中定义的绘图任务。执行如下步骤
+    Run plot tasks defined in task file. Execute the following steps:
 
-    * 加载任务文件
-    * 从任务文件生成试验配置对象和运行时配置对象
-    * 从任务文件生成绘图清单，并为每类绘图加载绘图模块
-    * 根据时间参数生成绘图作业列表，使用绘图模块的 ``check_available`` 函数过滤无效的时间组合
-    * 调用 ``run_by_serial`` 串行执行所有绘图作业
+    * load task file
+    * generate experiment configuration object and runtime configuration object
+    * generate plot list from the task file, and load plotting module for each plot type
+    * generate plot job list according to time configuration,
+      and use ``check_available`` function in plot module to filter out invalid time combinations.
+    * call ``run_by_serial`` to run all plot jobs in serial
 
     Parameters
     ----------
     task_file_path
-        任务文件路径
+        task file path
     """
     task_config = load_task_config(task_file_path=task_file_path)
 
@@ -112,17 +113,17 @@ def run_task(task_file_path: Path):
 
 def load_task_config(task_file_path: Path) -> dict:
     """
-    从任务文件中加载任务配置，返回字典对象
+    Load task configuration from task file, return dict object.
 
     Parameters
     ----------
     task_file_path
-        任务文件路径
+        task file path
 
     Returns
     -------
     dict
-        任务配置
+        task configuration dict
     """
     with open(task_file_path) as task_file:
         task_config = yaml.safe_load(task_file)
@@ -131,12 +132,12 @@ def load_task_config(task_file_path: Path) -> dict:
 
 def run_by_serial(job_configs: list[JobConfig]):
     """
-    顺序运行作业列表中的所有作业
+    Execute all jobs in job list.
 
     Parameters
     ----------
     job_configs
-        作业列表，一个对象代表一个作业
+        job list, one item represents one job.
     """
     count = len(job_configs)
     for i, job_config in enumerate(job_configs):
