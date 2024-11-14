@@ -58,8 +58,11 @@ def run_task(task_file_path: Path):
         data_file_name_template=data_file_name_template,
     )
 
+    task_runtime_config = task_config["runtime"]
+    if "base_work_dir" in task_runtime_config:
+        task_runtime_config["base_work_dir"] = Path(task_runtime_config["base_work_dir"]).absolute()
     runtime_config = RuntimeConfig(
-        **task_config["runtime"],
+        **task_runtime_config,
     )
 
     time_config = task_config["time"]

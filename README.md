@@ -33,7 +33,7 @@ Create a task file named `task.yaml` with content:
 
 ```yaml
 runtime:
-  base_work_dir: /g7/JOB_TMP/wangdp/workspace/cedarkit/cemc_plots_kit/readme/work_dir
+  base_work_dir: .
 
 source:
   data_dir: /g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG
