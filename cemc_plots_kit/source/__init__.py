@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import pandas as pd
 import xarray as xr
@@ -31,8 +31,11 @@ class ExprLocalDataSource(DataSource):
         self.expr_config = expr_config
 
     def retrieve(
-            self, field_info: FieldInfo, start_time: pd.Timestamp, forecast_time: pd.Timedelta
-    ) -> xr.DataArray or None:
+            self,
+            field_info: FieldInfo,
+            start_time: pd.Timestamp,
+            forecast_time: pd.Timedelta,
+    ) -> Optional[xr.DataArray]:
         """
         从本地 GRIB2 文件中加载要素场
 
@@ -47,7 +50,7 @@ class ExprLocalDataSource(DataSource):
 
         Returns
         -------
-        xr.DataArray or None
+        Optional[xr.DataArray]
             返回检索到的要素场，如果没找到则返回 None
         """
         # system -> data file
