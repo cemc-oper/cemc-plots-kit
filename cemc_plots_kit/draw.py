@@ -3,7 +3,7 @@ from typing import Optional, Union
 
 import pandas as pd
 
-from cedarkit.maps.util import AreaRange
+from cedarkit.plots.types import AreaRange
 from cemc_plots_kit.config import (
     JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig,
     get_default_data_file_name_template, get_default_data_dir

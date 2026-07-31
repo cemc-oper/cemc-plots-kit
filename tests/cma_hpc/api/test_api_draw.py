@@ -4,7 +4,7 @@ import shutil
 import pytest
 import pandas as pd
 
-from cedarkit.maps.util import AreaRange
+from cedarkit.plots.types import AreaRange
 from cemc_plots_kit.draw import draw_plot
 
 

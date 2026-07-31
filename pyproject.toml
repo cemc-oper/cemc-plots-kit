@@ -23,16 +23,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "numpy",
     "pandas",
     "matplotlib",
-    "cartopy",
     "xarray",
     "loguru",
-    'importlib-metadata; python_version<"3.8"',
-    "reki>=2024.4.0",
-    "cedarkit-comp>=2024.4.0",
-    "cedarkit-maps>=2024.4.0",
+    "typer",
+    "PyYAML",
+    "cedarkit-plots>=2024.4.0",
     "cedar-graph>=2024.10.0",
 ]
 

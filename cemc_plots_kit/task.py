@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 import pandas as pd
 
-from cedarkit.maps.util import AreaRange
+from cedarkit.plots.types import AreaRange
 
 from cemc_plots_kit.logger import get_logger
 from cemc_plots_kit.config import (

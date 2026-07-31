@@ -1,6 +1,6 @@
 import pandas as pd
 
-from cedarkit.maps.chart import Panel
+from cedarkit.plots.chart import Panel
 
 from cedar_graph.data import DataLoader
 from cedar_graph.plots.cn.rain_24h.default import PlotData, PlotMetadata, plot, load_data
@@ -10,7 +10,6 @@ from cemc_plots_kit.config import PlotConfig, TimeConfig, ExprConfig, JobConfig
 from cemc_plots_kit.logger import get_logger
 
 
-# set_default_map_loader_package("cedarkit.maps.map.cemc")
 
 PLOT_NAME = "rain_24h"
 

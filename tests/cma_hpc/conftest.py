@@ -7,7 +7,7 @@ import pytest
 import pandas as pd
 from loguru import logger
 
-from cedarkit.maps.util import AreaRange
+from cedarkit.plots.types import AreaRange
 
 
 logger.remove()

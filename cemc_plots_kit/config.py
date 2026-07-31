@@ -5,7 +5,7 @@ from typing import Optional, Union
 import pandas as pd
 
 
-from cedarkit.maps.util import AreaRange
+from cedarkit.plots.types import AreaRange
 
 
 @dataclass

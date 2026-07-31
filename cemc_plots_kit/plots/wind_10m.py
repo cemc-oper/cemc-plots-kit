@@ -1,4 +1,4 @@
-from cedarkit.maps.chart import Panel
+from cedarkit.plots.chart import Panel
 
 from cedar_graph.data import DataLoader
 from cedar_graph.plots.cn.wind_10m.default import PlotData, PlotMetadata, plot, load_data
@@ -8,7 +8,6 @@ from cemc_plots_kit.logger import get_logger
 from cemc_plots_kit.source import ExprLocalDataSource
 
 
-# set_default_map_loader_package("cedarkit.maps.map.cemc")
 
 PLOT_NAME = "wind_10m"
 
