@@ -15,7 +15,8 @@ def base_work_dir(root_work_dir):
 
 def test_run_job_cn(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir):
     system_name = cma_gfs_system_name
-    plot_type = "height_500_mslp"
+    plot_type = "cn.h_500_psl"
+    plot_label = "cn_h_500_psl"  # get_plot_label(plot_type)
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
@@ -49,14 +50,15 @@ def test_run_job_cn(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gf
     forecast_time_label = f"{int(forecast_time/pd.Timedelta(hours=1)):03d}"
     assert (
         str(output_file.absolute()) ==
-        f"{case_base_work_dir}/output/{plot_type}_{start_time_label}_{forecast_time_label}.png"
+        f"{case_base_work_dir}/output/{plot_label}_{start_time_label}_{forecast_time_label}.png"
     )
     assert output_file_list[0].exists()
 
 
 def test_run_job_area(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir, cn_area_north_china):
     system_name = cma_gfs_system_name
-    plot_type = "height_500_mslp"
+    plot_type = "cn.h_500_psl"
+    plot_label = "cn_h_500_psl"  # get_plot_label(plot_type)
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
@@ -93,6 +95,6 @@ def test_run_job_area(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_
     forecast_time_label = f"{int(forecast_time/pd.Timedelta(hours=1)):03d}"
     assert (
         str(output_file.absolute()) ==
-        f"{case_base_work_dir}/output/{plot_type}_{start_time_label}_{forecast_time_label}.png"
+        f"{case_base_work_dir}/output/{plot_label}_{start_time_label}_{forecast_time_label}.png"
     )
     assert output_file_list[0].exists()

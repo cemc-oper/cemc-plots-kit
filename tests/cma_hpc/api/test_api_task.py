@@ -37,9 +37,9 @@ time:
   forecast_interval: 6h
 
 plots:
-  height_500_mslp: on
-  rain_1h_wind_10m: off
-  rain_24h: on
+  cn.h_500_psl: on
+  cn.rain_wind_10m: off
+  cn.rain_24h: on
 """
     with open(task_file_path, "w") as f:
         f.write(task_file_content)
@@ -80,9 +80,9 @@ time:
   forecast_interval: 6h
 
 plots:
-  height_500_mslp: on
-  rain_1h_wind_10m: off
-  rain_24h: on
+  cn.h_500_psl: on
+  cn.rain_wind_10m: off
+  cn.rain_24h: on
 """
     with open(task_file_path, "w") as f:
         f.write(task_file_content)

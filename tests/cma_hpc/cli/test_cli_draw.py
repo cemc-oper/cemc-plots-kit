@@ -22,7 +22,8 @@ def base_work_dir(root_work_dir):
 
 def test_draw_cn(runner, cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir):
     system_name = cma_gfs_system_name
-    plot_type = "height_500_mslp"
+    plot_type = "cn.h_500_psl"
+    plot_label = "cn_h_500_psl"  # get_plot_label(plot_type)
     start_time = last_two_day
     start_time_str = start_time.strftime("%Y%m%d%H")  # 2024100900
     forecast_time = forecast_time_24h
@@ -32,7 +33,7 @@ def test_draw_cn(runner, cma_gfs_system_name, last_two_day, forecast_time_24h, c
 
     start_time_label = start_time_str
     forecast_time_label = f"{int(pd.to_timedelta(forecast_time_str) / pd.Timedelta(hours=1)):03d}"  # 024
-    image_file_path = Path(work_dir, f"{plot_type}_{start_time_label}_{forecast_time_label}.png")
+    image_file_path = Path(work_dir, f"{plot_label}_{start_time_label}_{forecast_time_label}.png")
 
     if image_file_path.exists():
         os.remove(image_file_path)
@@ -54,7 +55,8 @@ def test_draw_cn(runner, cma_gfs_system_name, last_two_day, forecast_time_24h, c
 
 def test_draw_area(runner, cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir, cn_area_north_china):
     system_name = cma_gfs_system_name
-    plot_type = "height_500_mslp"
+    plot_type = "cn.h_500_psl"
+    plot_label = "cn_h_500_psl"  # get_plot_label(plot_type)
     start_time = last_two_day
     start_time_str = start_time.strftime("%Y%m%d%H")  # 2024100900
     forecast_time = forecast_time_24h
@@ -66,7 +68,7 @@ def test_draw_area(runner, cma_gfs_system_name, last_two_day, forecast_time_24h,
 
     start_time_label = start_time_str
     forecast_time_label = f"{int(pd.to_timedelta(forecast_time_str) / pd.Timedelta(hours=1)):03d}"  # 024
-    image_file_path = Path(work_dir, f"{plot_type}_{start_time_label}_{forecast_time_label}.png")
+    image_file_path = Path(work_dir, f"{plot_label}_{start_time_label}_{forecast_time_label}.png")
 
     if image_file_path.exists():
         os.remove(image_file_path)

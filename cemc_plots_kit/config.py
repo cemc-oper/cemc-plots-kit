@@ -1,5 +1,5 @@
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Union
 
 import pandas as pd
@@ -67,9 +67,18 @@ class PlotConfig:
     Plot parameters, defining customized parameters for plotting, one object for each type of plot.
 
     plot_name
-        Name of a plot type.
+        Plot type (cedar-graph recipe/module, e.g. ``cn.t2m``, ``cn.shr.default``)
+        or an external recipe file path (``.yaml``/``.yml``).
+    plot_params
+        Recipe/module parameter values, e.g. ``{"interval": "3h"}`` for ``cn.rain_wind_10m``.
+    base_dir
+        Base directory for resolving relative external recipe paths,
+        usually the task file directory. ``None`` resolves against the
+        current working directory.
     """
     plot_name: str
+    plot_params: dict = field(default_factory=dict)
+    base_dir: Optional[Union[str, Path]] = None
 
 
 @dataclass

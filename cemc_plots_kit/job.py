@@ -1,11 +1,16 @@
 from pathlib import Path
+import inspect
 import os
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from cemc_plots_kit.config import JobConfig
-from cemc_plots_kit.plots import get_plot_module
+from cedarkit.plots.chart import Panel
+from cedar_graph.data import DataLoader, DataSource
+
+from cemc_plots_kit.config import JobConfig, ExprConfig
+from cemc_plots_kit.plots import get_plot_definition, get_plot_label
+from cemc_plots_kit.source import ExprLocalDataSource
 from cemc_plots_kit.logger import get_logger
 
 
@@ -18,9 +23,9 @@ def run_job(job_config: JobConfig) -> list[Path]:
 
     * create working directory
     * create a directory fore saving output figure
-    * load plotting module
+    * resolve plot definition (recipe or Python module) from ``plot_name``
     * enter working directory
-    * run plot function
+    * run plot (build data source → load data → plot)
     * save the result figure
     * clean memory
     * enter current directory
@@ -61,9 +66,11 @@ def run_job(job_config: JobConfig) -> list[Path]:
     job_logger.info(f"output image file name: {output_image_file_name}")
 
     plot_name = plot_config.plot_name
-    job_logger.info(f"loading plot module...")
-    plot_module = get_plot_module(plot_name=plot_name)
-    job_logger.info(f"get plot module: {plot_module.__name__}")
+    job_logger.info(f"resolving plot definition... {plot_name}")
+    plot_definition = get_plot_definition(
+        plot_name=plot_name,
+        base_dir=plot_config.base_dir,
+    )
 
     previous_dir = os.getcwd()
 
@@ -71,7 +78,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
     os.chdir(current_work_dir)
 
     job_logger.info(f"running plot job...")
-    panel = plot_module.run_plot(job_config=job_config)
+    panel = run_plot(plot_definition=plot_definition, job_config=job_config)
 
     job_logger.info(f"saving output image... {output_image_file_path}")
     panel.save(output_image_file_path)
@@ -80,7 +87,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
     plt.clf()
     plt.close("all")
     del panel
-    del plot_module
+    del plot_definition
 
     job_logger.info(f"exiting work dir... {previous_dir}")
     os.chdir(previous_dir)
@@ -88,10 +95,63 @@ def run_job(job_config: JobConfig) -> list[Path]:
     return [output_image_file_path]
 
 
+def run_plot(plot_definition, job_config: JobConfig) -> Panel:
+    """
+    Run a resolved plot definition for one job: build the experiment data
+    source, load fields through the definition's ``load_data`` and draw
+    with its ``plot``. Works uniformly for engine recipes and Python
+    plot modules; recipe parameters come from ``plot_config.plot_params``.
+    """
+    expr_config = job_config.expr_config
+    time_config = job_config.time_config
+    plot_config = job_config.plot_config
+
+    metadata_kwargs = dict(
+        start_time=time_config.start_time,
+        forecast_time=time_config.forecast_time,
+        system_name=expr_config.system_name,
+        area_range=expr_config.area,
+        **plot_config.plot_params,
+    )
+
+    metadata_class = plot_definition.PlotMetadata
+    metadata_fields = set(inspect.signature(metadata_class).parameters)
+    metadata = metadata_class(**{
+        key: value for key, value in metadata_kwargs.items() if key in metadata_fields
+    })
+
+    job_logger.info("loading data...")
+    data_source = create_data_source(expr_config=expr_config)
+    data_loader = DataLoader(data_source=data_source)
+
+    load_data_params = set(inspect.signature(plot_definition.load_data).parameters)
+    load_data_kwargs = {
+        key: value for key, value in metadata_kwargs.items() if key in load_data_params
+    }
+    plot_data = plot_definition.load_data(data_loader=data_loader, **load_data_kwargs)
+    job_logger.info("loading data...done")
+
+    job_logger.info("plotting...")
+    panel = plot_definition.plot(plot_data=plot_data, plot_metadata=metadata)
+    job_logger.info("plotting...done")
+
+    del plot_data
+    return panel
+
+
+def create_data_source(expr_config: ExprConfig) -> DataSource:
+    """
+    Create the experiment local data source.
+
+    Kept as a separate function so tests can substitute a mock data source.
+    """
+    return ExprLocalDataSource(expr_config=expr_config)
+
+
 def create_work_dir(job_config: JobConfig) -> Path:
     """
     Create a working directory for a plot job using ``base_work_dir``.
-    Directory location ``{base_work_dir}/{start_time_label}/{plot_name}/{forecast_time_label}``
+    Directory location ``{base_work_dir}/{start_time_label}/{plot_label}/{forecast_time_label}``
 
     Parameters
     ----------
@@ -110,9 +170,12 @@ def create_work_dir(job_config: JobConfig) -> Path:
     forecast_time = time_config.forecast_time
     forecast_time_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
 
-    plot_name = job_config.plot_config.plot_name
+    plot_label = get_plot_label(
+        plot_name=job_config.plot_config.plot_name,
+        plot_params=job_config.plot_config.plot_params,
+    )
 
-    current_work_dir = Path(base_work_dir, start_time_label, plot_name, forecast_time_label)
+    current_work_dir = Path(base_work_dir, start_time_label, plot_label, forecast_time_label)
     current_work_dir.mkdir(parents=True, exist_ok=True)
     return current_work_dir
 
@@ -141,6 +204,7 @@ def create_output_image_dir(job_config: JobConfig) -> Path:
 def get_output_image_file_name(job_config: JobConfig) -> str:
     """
     Generate output image file name using job configuration.
+    ``{plot_label}_{start_time_label}_{forecast_time_label}.png``
 
     Parameters
     ----------
@@ -155,12 +219,15 @@ def get_output_image_file_name(job_config: JobConfig) -> str:
     time_config = job_config.time_config
     plot_config = job_config.plot_config
 
-    plot_name = plot_config.plot_name
+    plot_label = get_plot_label(
+        plot_name=plot_config.plot_name,
+        plot_params=plot_config.plot_params,
+    )
 
     start_time = time_config.start_time
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_time = time_config.forecast_time
     forecast_time_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
 
-    file_name = f"{plot_name}_{start_time_label}_{forecast_time_label}.png"
+    file_name = f"{plot_label}_{start_time_label}_{forecast_time_label}.png"
     return file_name

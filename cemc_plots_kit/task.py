@@ -11,7 +11,7 @@ from cemc_plots_kit.config import (
     get_default_data_file_name_template,
 )
 from cemc_plots_kit.job import run_job
-from cemc_plots_kit.plots import get_plot_module
+from cemc_plots_kit.plots import get_plot_definition, check_plot_available
 
 
 task_logger = get_logger(__name__)
@@ -23,9 +23,10 @@ def run_task(task_file_path: Path):
 
     * load task file
     * generate experiment configuration object and runtime configuration object
-    * generate plot list from the task file, and load plotting module for each plot type
+    * parse the ``plots`` section into (plot type, params) entries and resolve
+      the plot definition (recipe or Python module) for each entry
     * generate plot job list according to time configuration,
-      and use ``check_available`` function in plot module to filter out invalid time combinations.
+      and use ``check_available`` of each plot definition to filter out invalid time combinations.
     * call ``run_by_serial`` to run all plot jobs in serial
 
     Parameters
@@ -33,6 +34,7 @@ def run_task(task_file_path: Path):
     task_file_path
         task file path
     """
+    task_file_path = Path(task_file_path)
     task_config = load_task_config(task_file_path=task_file_path)
 
     area = None
@@ -71,18 +73,19 @@ def run_task(task_file_path: Path):
     forecast_interval = pd.to_timedelta(time_config["forecast_interval"])
     forecast_times = pd.timedelta_range("0h", total_forecast_time, freq=forecast_interval)
 
-    plots_config = task_config["plots"]
     selected_plots = []
-    for plot_name,v in plots_config.items():
-        if not v:
-            continue
-        plot_module = get_plot_module(plot_name=plot_name)
+    for plot_name, plot_params in parse_plots_config(task_config["plots"]):
+        plot_definition = get_plot_definition(
+            plot_name=plot_name,
+            base_dir=task_file_path.parent,
+        )
         selected_plots.append({
             "plot_name": plot_name,
-            "plot_module": plot_module,
+            "plot_params": plot_params,
+            "plot_definition": plot_definition,
         })
 
-    task_logger.info(f"selected plots: {selected_plots}")
+    task_logger.info(f"selected plots: {[p['plot_name'] for p in selected_plots]}")
 
     job_configs = []
     for forecast_time in forecast_times:
@@ -91,11 +94,18 @@ def run_task(task_file_path: Path):
             forecast_time=forecast_time,
         )
         for current_plot in selected_plots:
-            plot_module = current_plot["plot_module"]
             plot_name = current_plot["plot_name"]
-            plot_config = PlotConfig(plot_name=plot_name)
+            plot_config = PlotConfig(
+                plot_name=plot_name,
+                plot_params=current_plot["plot_params"],
+                base_dir=task_file_path.parent,
+            )
 
-            if not plot_module.check_available(time_config=time_config, plot_config=plot_config):
+            if not check_plot_available(
+                    plot_definition=current_plot["plot_definition"],
+                    time_config=time_config,
+                    plot_config=plot_config,
+            ):
                 task_logger.debug(f"skip job because of time: [{plot_name}] [{start_time}] [{forecast_time}]")
                 continue
 
@@ -112,6 +122,50 @@ def run_task(task_file_path: Path):
     task_logger.info("begin to run jobs...")
     run_by_serial(job_configs=job_configs)
     task_logger.info("end jobs")
+
+
+def parse_plots_config(plots_config: dict) -> list[tuple[str, dict]]:
+    """
+    Parse the ``plots`` section of a task file into ``(plot_name, params)`` entries.
+
+    Each key is a plot type (``cn.t2m``, ``cn.shr.default``) or an external
+    recipe path (``.yaml``/``.yml``). The value selects and parameterizes it:
+
+    * bool: ``on``/``off`` switch without parameters
+    * mapping: recipe parameters, e.g. ``{interval: 3h}``
+    * list of mappings: several parameter sets of the same plot,
+      e.g. multiple precipitation intervals
+
+    Parameters
+    ----------
+    plots_config
+        the ``plots`` mapping from a task file.
+
+    Returns
+    -------
+    list[tuple[str, dict]]
+        enabled ``(plot_name, plot_params)`` entries, in file order.
+    """
+    selected = []
+    for plot_name, value in plots_config.items():
+        if isinstance(value, str):
+            # YAML 1.1 的 on/off 已被 PyYAML 解析为 bool；字符串形式兜底
+            value = value.strip().lower() not in ("off", "false", "no", "0")
+        if value is None or value is False:
+            continue
+        if value is True:
+            selected.append((plot_name, {}))
+        elif isinstance(value, dict):
+            selected.append((plot_name, dict(value)))
+        elif isinstance(value, list):
+            for item in value:
+                selected.append((plot_name, dict(item) if item else {}))
+        else:
+            raise ValueError(
+                f"invalid plots entry for {plot_name!r}: {value!r}; "
+                f"expected on/off, a params mapping or a list of params mappings"
+            )
+    return selected
 
 
 def load_task_config(task_file_path: Path) -> dict:

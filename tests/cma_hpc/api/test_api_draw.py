@@ -15,7 +15,8 @@ def base_work_dir(root_work_dir):
 
 def test_draw_plot_cn(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir):
     system_name = cma_gfs_system_name
-    plot_type = "height_500_mslp"
+    plot_type = "cn.h_500_psl"
+    plot_label = "cn_h_500_psl"  # get_plot_label(plot_type)
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
@@ -24,7 +25,7 @@ def test_draw_plot_cn(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_
 
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_hour_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
-    image_name = f"{plot_type}_{start_time_label}_{forecast_hour_label}.png"
+    image_name = f"{plot_label}_{start_time_label}_{forecast_hour_label}.png"
     image_file_path = Path(work_dir, image_name)
 
     shutil.rmtree(work_dir, ignore_errors=True)
@@ -44,7 +45,8 @@ def test_draw_plot_cn(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_
 
 def test_draw_plot_area(cma_gfs_system_name, last_two_day, forecast_time_24h, cma_gfs_data_dir, base_work_dir, cn_area_north_china):
     system_name = cma_gfs_system_name
-    plot_type = "height_500_mslp"
+    plot_type = "cn.h_500_psl"
+    plot_label = "cn_h_500_psl"  # get_plot_label(plot_type)
     start_time = last_two_day
     forecast_time = forecast_time_24h
     data_dir = cma_gfs_data_dir
@@ -55,7 +57,7 @@ def test_draw_plot_area(cma_gfs_system_name, last_two_day, forecast_time_24h, cm
 
     start_time_label = start_time.strftime("%Y%m%d%H")
     forecast_hour_label = f"{int(forecast_time / pd.Timedelta(hours=1)):03d}"
-    image_name = f"{plot_type}_{start_time_label}_{forecast_hour_label}.png"
+    image_name = f"{plot_label}_{start_time_label}_{forecast_hour_label}.png"
     image_file_path = Path(work_dir, image_name)
 
     shutil.rmtree(work_dir, ignore_errors=True)

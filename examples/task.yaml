@@ -1,0 +1,29 @@
+runtime:
+  base_work_dir: .
+
+source:
+  data_dir: /g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG
+
+system_name: CMA-GFS
+
+time:
+  start_time: 2024111300
+  forecast_time: 48h
+  forecast_interval: 6h
+
+plots:
+  # 开关形式
+  cn.h_500_psl: on
+  cn.rain_24h: on
+
+  # 参数映射形式：3 小时间隔累计降水 + 10 米风
+  cn.rain_wind_10m:
+    interval: 3h
+
+  # 参数列表形式：同一图形出多组参数
+  # cn.rain_wind_10m:
+  #   - { interval: 1h }
+  #   - { interval: 3h }
+
+  # 外部配方：相对 task 文件所在目录解析
+  recipes/t2m_custom.yaml: on

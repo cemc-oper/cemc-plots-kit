@@ -1,0 +1,18 @@
+# 外部配方示例：2 米温度（固定夏季色标）。
+# 在内置 cn.t2m 配方（cedar_graph/recipes/cn/t2m.yaml）基础上修改：
+# 去掉季节 select，固定 t2m:cn_summer 样式，并自定义标题。
+name: "custom 2m Temperature (C)"
+domain: { default: east_asia, area: cn_area }
+
+data:
+  t2m:
+    field: t2m
+    transforms:
+      - { op: style_units }
+
+layers:
+  - field: t2m
+    style: t2m:cn_summer
+
+title: { graph_name: "custom 2m Temperature (C)", area_prefix: true }
+colorbar: { layer: 0 }
