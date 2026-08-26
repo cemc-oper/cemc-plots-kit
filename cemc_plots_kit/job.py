@@ -77,20 +77,19 @@ def run_job(job_config: JobConfig) -> list[Path]:
     job_logger.info(f"entering work dir... {current_work_dir}")
     os.chdir(current_work_dir)
 
-    job_logger.info(f"running plot job...")
-    panel = run_plot(plot_definition=plot_definition, job_config=job_config)
+    try:
+        job_logger.info(f"running plot job...")
+        panel = run_plot(plot_definition=plot_definition, job_config=job_config)
 
-    job_logger.info(f"saving output image... {output_image_file_path}")
-    panel.save(output_image_file_path)
-
-    # clear memory
-    plt.clf()
-    plt.close("all")
-    del panel
-    del plot_definition
-
-    job_logger.info(f"exiting work dir... {previous_dir}")
-    os.chdir(previous_dir)
+        job_logger.info(f"saving output image... {output_image_file_path}")
+        panel.save(output_image_file_path)
+    finally:
+        # A task must never leak its per-job directory to the next task, even
+        # when loading, plotting, or saving raises.
+        plt.clf()
+        plt.close("all")
+        job_logger.info(f"exiting work dir... {previous_dir}")
+        os.chdir(previous_dir)
 
     return [output_image_file_path]
 

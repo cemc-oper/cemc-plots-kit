@@ -1,7 +1,10 @@
 """run_job 端到端与输出命名测试（cemc_plots_kit.job）。"""
 from pathlib import Path
 
+import os
+
 import pandas as pd
+import pytest
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
 from cemc_plots_kit.job import (
@@ -58,6 +61,32 @@ class TestOutputNaming:
 
 
 class TestRunJob:
+    def test_run_job_restores_working_directory(
+            self, mock_data_source, tmp_path, start_time, forecast_time, system_name
+    ):
+        """Stage-0 normal-path contract; exceptional cleanup is tracked as M-11."""
+        job_config = _make_job_config(
+            tmp_path, "cn.t2m", start_time, forecast_time, system_name,
+        )
+        before = os.getcwd()
+        run_job(job_config=job_config)
+        assert os.getcwd() == before
+
+    def test_run_job_restores_working_directory_after_error(
+            self, monkeypatch, tmp_path, start_time, forecast_time, system_name
+    ):
+        job_config = _make_job_config(
+            tmp_path, "cn.t2m", start_time, forecast_time, system_name,
+        )
+        monkeypatch.setattr(
+            "cemc_plots_kit.job.run_plot",
+            lambda **kwargs: (_ for _ in ()).throw(RuntimeError("plot failed")),
+        )
+        before = os.getcwd()
+        with pytest.raises(RuntimeError, match="plot failed"):
+            run_job(job_config=job_config)
+        assert os.getcwd() == before
+
     """端到端：MockDataSource 替换数据源，run_job 出图。"""
 
     def test_run_job_recipe(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
