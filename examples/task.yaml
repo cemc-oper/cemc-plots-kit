@@ -1,8 +1,13 @@
 runtime:
   base_work_dir: .
 
-source:
-  data_dir: /g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG
+# Catalog defaults: CMA-GFS resolves to the canonical local dataset.
+source: {}
+
+# Explicit v1-compatible file-pattern source (takes precedence over catalog):
+# source:
+#   data_dir: ./grib/{start_time_label}
+#   data_file_name_template: gmf.gra.{start_time_label}{forecast_hour_label}.grb2
 
 system_name: CMA-GFS
 

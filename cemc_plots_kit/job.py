@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from cedarkit.plots.chart import Panel
-from cedar_graph.data import DataLoader, DataSource
+from cedar_graph.data import DataLoader, DataSource, RekiProvider
 
 from cemc_plots_kit.config import JobConfig, ExprConfig
 from cemc_plots_kit.plots import get_plot_definition, get_plot_label
@@ -121,7 +121,11 @@ def run_plot(plot_definition, job_config: JobConfig) -> Panel:
 
     job_logger.info("loading data...")
     data_source = create_data_source(expr_config=expr_config)
-    data_loader = DataLoader(data_source=data_source)
+    data_loader = (
+        DataLoader(provider=data_source)
+        if isinstance(data_source, RekiProvider)
+        else DataLoader(data_source=data_source)
+    )
 
     load_data_params = set(inspect.signature(plot_definition.load_data).parameters)
     load_data_kwargs = {
@@ -144,6 +148,8 @@ def create_data_source(expr_config: ExprConfig) -> DataSource:
 
     Kept as a separate function so tests can substitute a mock data source.
     """
+    if expr_config.source_spec is not None:
+        return RekiProvider(expr_config.source_spec)
     return ExprLocalDataSource(expr_config=expr_config)
 
 

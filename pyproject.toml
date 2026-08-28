@@ -31,6 +31,7 @@ dependencies = [
     "PyYAML",
     "cedarkit-plots>=2026.8.0",
     "cedar-graph>=2026.8.0",
+    "reki>=2026.8.0",
 ]
 
 [project.urls]

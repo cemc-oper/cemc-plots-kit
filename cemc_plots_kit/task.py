@@ -2,13 +2,14 @@ from pathlib import Path
 
 import yaml
 import pandas as pd
+import reki
 
 from cedarkit.plots.types import AreaRange
 
 from cemc_plots_kit.logger import get_logger
 from cemc_plots_kit.config import (
     ExprConfig, PlotConfig, TimeConfig, JobConfig, parse_start_time, RuntimeConfig,
-    get_default_data_file_name_template,
+    get_default_data_file_name_template, get_default_data_dir,
 )
 from cemc_plots_kit.job import run_job
 from cemc_plots_kit.plots import get_plot_definition, check_plot_available
@@ -47,17 +48,11 @@ def run_task(task_file_path: Path):
             end_longitude=area_config["end_longitude"],
         )
     system_name = task_config["system_name"]
-    data_file_name_template = task_config["source"].get("data_file_name_template", None)
-    if data_file_name_template is None:
-        data_file_name_template = get_default_data_file_name_template(system_name=system_name)
-    if data_file_name_template is None:
-        raise ValueError(f"Can't get default data_file_name_template with system_name {system_name}."
-                         f"Please set data_file_name_template parameter.")
-    expr_config = ExprConfig(
+    expr_config = bind_task_source(
         system_name=system_name,
+        source_config=task_config.get("source", {}),
+        base_dir=task_file_path.parent,
         area=area,
-        data_dir=task_config["source"]["data_dir"],
-        data_file_name_template=data_file_name_template,
     )
 
     task_runtime_config = task_config["runtime"]
@@ -185,6 +180,71 @@ def load_task_config(task_file_path: Path) -> dict:
     with open(task_file_path) as task_file:
         task_config = yaml.safe_load(task_file)
         return task_config
+
+
+def bind_task_source(
+        system_name: str, source_config: dict | None, base_dir: Path,
+        area: AreaRange | None = None,
+) -> ExprConfig:
+    """Bind a v1 task source to one explicit :class:`reki.SourceSpec`.
+
+    A legacy pair of ``data_dir`` and ``data_file_name_template`` is an
+    explicit ``file-pattern`` binding.  Missing members are filled only from
+    the resolved catalog record; no implicit nested merge is performed.  With
+    no explicit path fields the catalog's own source is used.
+    """
+    source_config = dict(source_config or {})
+    try:
+        resolved = reki.load_catalog(plugins=False, user=False).resolve(system_name)
+    except KeyError as exc:
+        if "data_dir" not in source_config or "data_file_name_template" not in source_config:
+            raise ValueError(
+                f"unknown dataset {system_name!r}; provide both data_dir and "
+                "data_file_name_template for an explicit file-pattern source"
+            ) from exc
+        resolved = None
+
+    data_dir = source_config.get("data_dir")
+    template = source_config.get("data_file_name_template")
+    if resolved is not None:
+        data_dir = data_dir if data_dir is not None else get_default_data_dir(system_name)
+        template = template if template is not None else get_default_data_file_name_template(system_name)
+
+    if ("data_dir" in source_config) != ("data_file_name_template" in source_config):
+        # A partial explicit v1 source deliberately has exactly one catalog
+        # default.  The error identifies the unsupported case instead of
+        # silently selecting an unrelated dataset default.
+        if data_dir is None or template is None:
+            raise ValueError(
+                f"incomplete explicit source for {system_name!r}: catalog has "
+                "no matching default for the missing value"
+            )
+
+    if "data_dir" in source_config or "data_file_name_template" in source_config:
+        if data_dir is None or template is None:
+            raise ValueError(
+                "explicit file-pattern source requires data_dir and "
+                "data_file_name_template"
+            )
+        data_dir = Path(data_dir)
+        if not data_dir.is_absolute():
+            data_dir = base_dir / data_dir
+        source_spec = reki.SourceSpec("file-pattern", (str(data_dir), template))
+        dataset_id = resolved.record.dataset_id if resolved is not None else None
+    else:
+        if resolved is None:
+            raise AssertionError("unreachable")
+        source_spec = resolved.source
+        dataset_id = resolved.record.dataset_id
+
+    return ExprConfig(
+        system_name=system_name,
+        area=area,
+        data_dir=data_dir,
+        data_file_name_template=template,
+        source_spec=source_spec,
+        dataset_id=dataset_id,
+    )
 
 
 def run_by_serial(job_configs: list[JobConfig]):

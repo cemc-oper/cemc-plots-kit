@@ -29,6 +29,11 @@ class ExprConfig:
     data_dir: Union[str, Path]
     area: Optional[AreaRange] = None
     data_file_name_template: Optional[str] = None
+    # ``source_spec`` is the canonical data binding for task v1.  Keep the
+    # two legacy path fields above so callers can still construct this class
+    # directly and ``ExprLocalDataSource`` remains usable.
+    source_spec: Optional[reki.SourceSpec] = None
+    dataset_id: Optional[str] = None
 
 
 @dataclass

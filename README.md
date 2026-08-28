@@ -61,8 +61,8 @@ Create a task file named `task.yaml` with content:
 runtime:
   base_work_dir: .
 
-source:
-  data_dir: /g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG
+# Use catalog defaults.  CMA-GFS is bound to its canonical local dataset.
+source: {}
 
 system_name: CMA-GFS
 
@@ -75,6 +75,16 @@ plots:
   cn.h_500_psl: on
   cn.rain_24h: on
 ```
+
+`source: {}` 使用 catalog 的默认绑定。旧 task 的显式目录和文件名写法仍然支持，且优先于 catalog：
+
+```yaml
+source:
+  data_dir: /g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG
+  data_file_name_template: gmf.gra.{start_time_label}{forecast_hour_label}.grb2
+```
+
+相对 `data_dir` 以 task 文件所在目录为基准。运行时会把这对 v1 字段转换为受限的 `file-pattern` source；图题和输出文件名继续使用原有的 `system_name`。
 
 Execute the following shell command to draw figures:
 

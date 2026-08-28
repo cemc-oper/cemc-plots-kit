@@ -2,7 +2,7 @@
 import pandas as pd
 import pytest
 
-from cemc_plots_kit.task import parse_plots_config, run_task
+from cemc_plots_kit.task import bind_task_source, parse_plots_config, run_task
 
 
 class TestParsePlotsConfig:
@@ -90,6 +90,42 @@ plots:
             f"t2m_custom_{start_time_label}_024.png",
         ]
         assert output_names == sorted(expected)
+
+
+class TestTaskSourceBinding:
+    def test_catalog_default_binds_canonical_source(self, tmp_path):
+        config = bind_task_source("CMA-MESO", {}, tmp_path)
+        assert config.dataset_id == "cma_meso_3km"
+        assert config.source_spec.name == "local"
+        assert config.source_spec.args == ("cma_meso_3km/grib2/orig",)
+
+    def test_explicit_legacy_paths_bind_file_pattern_and_keep_system_label(self, tmp_path):
+        config = bind_task_source(
+            "CMA-GFS",
+            {
+                "data_dir": "fixture/{start_time_label}",
+                "data_file_name_template": "gmf.{start_time_label}{forecast_hour_label}.grb2",
+            },
+            tmp_path,
+        )
+        assert config.system_name == "CMA-GFS"
+        assert config.dataset_id == "cma_gfs_gmf"
+        assert config.source_spec.name == "file-pattern"
+        assert config.source_spec.args == (
+            str(tmp_path / "fixture/{start_time_label}"),
+            "gmf.{start_time_label}{forecast_hour_label}.grb2",
+        )
+
+    def test_partial_explicit_source_uses_only_matching_catalog_default(self, tmp_path):
+        config = bind_task_source(
+            "CMA-GFS", {"data_dir": "/fixture/{start_time_label}"}, tmp_path,
+        )
+        assert config.source_spec.name == "file-pattern"
+        assert config.source_spec.args[1] == "gmf.gra.{start_time_label}{forecast_hour_label}.grb2"
+
+    def test_unknown_partial_source_is_diagnostic(self, tmp_path):
+        with pytest.raises(ValueError, match="unknown dataset"):
+            bind_task_source("unknown", {"data_dir": "/fixture"}, tmp_path)
 
 
 #: 简化外部配方（与 test_plots.py 同款）
