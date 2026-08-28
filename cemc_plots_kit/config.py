@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Union
 
 import pandas as pd
+import reki
 
 
 from cedarkit.plots.types import AreaRange
@@ -168,16 +169,11 @@ def get_default_data_file_name_template(system_name: str) -> Optional[str]:
     Optional[str]
         data file name template. If system name is not supported, return None.
     """
-    system_name = system_name.lower()
-    system_name = system_name.replace("-", "_")
-    if system_name in ["cma_gfs", "cma_gfs_gmf"]:
-        return "gmf.gra.{start_time_label}{forecast_hour_label}.grb2"
-    elif system_name in ["cma_meso","cma_meso_3km", "cma_meso_1km"]:
-        return "rmf.hgra.{start_time_label}{forecast_hour_label}.grb2"
-    elif system_name in ["cma_tym"]:
-        return "rmf.tcgra.{start_time_label}{forecast_hour_label}.grb2"
-    else:
+    try:
+        record = reki.load_catalog(plugins=False, user=False).resolve(system_name).record
+    except KeyError:
         return None
+    return record.metadata.get("legacy_file_name_template")
 
 
 def get_default_data_dir(system_name: str) -> Optional[str]:
@@ -198,15 +194,8 @@ def get_default_data_dir(system_name: str) -> Optional[str]:
     Optional[str]
         data file path. If system name is not supported, return None.
     """
-    system_name = system_name.lower()
-    system_name = system_name.replace("-", "_")
-    if system_name in ["cma_gfs", "cma_gfs_gmf"]:
-        return "/g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG"
-    elif system_name in ["cma_meso","cma_meso_3km", "cma_meso_1km"]:
-        return "/g3/COMMONDATA/OPER/CEMC/MESO_3KM/Prod-grib/{start_time_label}/ORIG"
-    elif system_name in ["cma_meso_1km"]:
-        return "/g3/COMMONDATA/OPER/CEMC/MESO_1KM/Prod-grib/{start_time_label}/ORIG"
-    elif system_name in ["cma_tym"]:
-        return "/g3/COMMONDATA/OPER/CEMC/TYM/Prod-grib/{start_time_label}/ORIG"
-    else:
+    try:
+        record = reki.load_catalog(plugins=False, user=False).resolve(system_name).record
+    except KeyError:
         return None
+    return record.metadata.get("legacy_data_dir")
