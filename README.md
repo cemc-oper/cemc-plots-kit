@@ -6,6 +6,12 @@ cemc-plots-kit 只包含业务编排逻辑（CLI / 配置 / 任务 / 数据源�
 [cedar-graph](https://github.com/cemc-oper/cedar-graph) 的**配方**（YAML）或
 Python 图形模块实现，`plot_type` 直接映射，无需逐图包装代码。
 
+当前 task 文件仍是 v1 业务绑定：`system_name` 或显式 `source` 在 task 层选择
+数据集。Recipe v2 / PlotPlan 只保存稳定 parameter ID、FieldQuery 和时间语义，
+不会保存 CMADaaS 名称、catalog `data_code`、服务地址或认证信息。若执行 CMADaaS，
+由 cedar-graph 的 provider 在运行边界解析 catalog 并完成请求绑定；TaskSpec v2、
+跨产品执行上下文、重试、并发和 manifest 属于阶段 6，尚未引入本包。
+
 ## Install
 
 Download the latest source code from GitHub and install manually.
