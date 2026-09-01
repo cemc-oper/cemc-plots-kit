@@ -17,6 +17,13 @@ def classify_error(error: Exception, *, storage_base: str | None = None) -> str:
         if storage_base and not Path(storage_base).exists():
             return "mount_missing"
         return "file_missing"
-    if error.__class__.__name__ == "IndexBuildError":
+    name = error.__class__.__name__
+    if name == "IndexBuildError":
         return "index_error"
+    if name in {"DecodeError", "DataArrayContractError"}:
+        return "decode_error"
+    if name in {"RenderError", "PlotRenderError"}:
+        return "render_error"
+    if name in {"PublishError", "ManifestPublishError"}:
+        return "publish_error"
     return "op_error"

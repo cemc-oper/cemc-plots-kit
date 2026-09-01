@@ -17,11 +17,32 @@ cemc-plots-kit 只包含业务编排逻辑（CLI / 配置 / 任务 / 数据源�
 [cedar-graph](https://github.com/cemc-oper/cedar-graph) 的**配方**（YAML）或
 Python 图形模块实现，`plot_type` 直接映射，无需逐图包装代码。
 
-当前 task 文件仍是 v1 业务绑定：`system_name` 或显式 `source` 在 task 层选择
-数据集。Recipe v2 / PlotPlan 只保存稳定 parameter ID、FieldQuery 和时间语义，
-不会保存 CMADaaS 名称、catalog `data_code`、服务地址或认证信息。若执行 CMADaaS，
-由 cedar-graph 的 provider 在运行边界解析 catalog 并完成请求绑定；TaskSpec v2、
-跨产品执行上下文、重试、并发和 manifest 属于阶段 6，尚未引入本包。
+旧 task 文件仍支持 v1 业务绑定：`system_name` 或显式 `source` 在 task 层选择
+数据集。v2 的 `source.dataset` 必须解析为本地 mounted CMADaaS catalog 条目；Recipe /
+PlotPlan 只保存稳定 parameter ID、FieldQuery 和时间语义，不保存服务地址或认证信息。
+
+### Versioned task runtime
+
+Use the v2 commands to inspect and execute a task:
+
+```shell
+cemc-plots validate examples/task-v2-cmadaas-mount.yaml
+cemc-plots plan examples/task-v2-cmadaas-mount.yaml
+cemc-plots explain examples/task-v2-cmadaas-mount.yaml --plot cn.t2m --forecast-time 24h
+cemc-plots run examples/task-v2-cmadaas-mount.yaml
+```
+
+`validate`, `plan`, and `explain` do not construct a reader, decode values, draw,
+or write files. `run` writes figures and `task-manifest.json` atomically in the
+configured output directory. The manifest records the task-plan identity, result
+of every job, source identity, and task-local sharing counters; it deliberately
+does not include credentials or complete environment variables.
+
+`runtime.workers: 1` is the deterministic reference executor and retains a
+task-local shared provider when `runtime.shared_reads: true`. Values greater than
+one use isolated processes: each worker rebuilds its provider and file handles,
+and manifest results retain TaskPlan order regardless of completion order. Set
+`shared_reads: false` to compare against independent per-job reads.
 
 ## Install
 
