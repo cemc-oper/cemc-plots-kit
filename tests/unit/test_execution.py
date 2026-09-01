@@ -71,3 +71,48 @@ def test_shared_reads_reuses_one_provider_and_can_be_disabled(tmp_path, monkeypa
     unshared = run_task_spec(load_task_spec(path), task_file=path)
     assert providers == [None, None]
     assert unshared["sharing"]["shared_reads"] is False
+
+
+def test_multiple_workers_rebuild_providers_and_keep_result_order(tmp_path, monkeypatch):
+    path = tmp_path / "task.yaml"
+    path.write_text(TASK.replace("missing: skip", "missing: skip, workers: 2"), encoding="utf-8")
+    providers = []
+
+    class Future:
+        def __init__(self, value):
+            self.value = value
+
+        def result(self):
+            return self.value
+
+        def cancel(self):
+            return False
+
+    class InlineProcessPool:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def submit(self, function, *args):
+            return Future(function(*args))
+
+    def fake_run_job(config, *, data_source=None):
+        providers.append(data_source)
+        return []
+
+    monkeypatch.setattr("cemc_plots_kit.execution.ProcessPoolExecutor", InlineProcessPool)
+    monkeypatch.setattr("cemc_plots_kit.execution.run_job", fake_run_job)
+    result = run_task_spec(load_task_spec(path), task_file=path)
+
+    assert len(providers) == 2
+    assert providers[0] is not providers[1]
+    assert [item["job_id"] for item in result["results"]] == [
+        "cn.t2m:P0DT0H0M0S:44136fa355b3",
+        "cn.t2m:P1DT0H0M0S:44136fa355b3",
+    ]
+    assert result["sharing"]["worker_groups"] == 2
