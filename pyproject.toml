@@ -32,7 +32,7 @@ dependencies = [
     "PyYAML",
     "pydantic>=2,<3",
     "cedarkit-plots>=2026.9.0",
-    "cedar-graph>=2026.8.0",
+    "cedar-graph>=2026.9.0",
     "reki>=2026.8.0",
 ]
 
