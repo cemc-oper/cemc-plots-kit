@@ -11,6 +11,7 @@ description = "Plots tool for CEMC's NWP Opearting systems."
 readme = "README.md"
 keywords = ["graphic", "cemc", "cedarkit"]
 license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
 dynamic = ["version"]
 classifiers = [
     "Development Status :: 3 - Alpha",
