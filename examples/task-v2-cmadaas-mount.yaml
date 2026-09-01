@@ -1,0 +1,26 @@
+api_version: cemc.plots/v2
+kind: PlotTask
+
+# The dataset definition is packaged in catalog/cmadaas_mount.yaml.  The
+# deployment-specific mount point stays in the task, never in reki builtin.
+source:
+  dataset: cma_gfs_gmf_cmadaas_mount
+  overrides:
+    storage_base: /CMADAAS
+
+time:
+  start_time: 2026071600
+  forecast_time: 24h
+  forecast_interval: 6h
+
+runtime:
+  work_dir: ./work
+  output_dir: ./output
+  missing: skip
+  workers: 1
+  shared_reads: true
+
+plots:
+  cn.t2m: true
+  cn.h_500_psl: true
+  cn.rain_24h: true

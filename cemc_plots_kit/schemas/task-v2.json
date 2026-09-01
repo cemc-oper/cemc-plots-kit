@@ -1,0 +1,160 @@
+{
+  "$defs": {
+    "RuntimeConfigV2": {
+      "additionalProperties": false,
+      "properties": {
+        "missing": {
+          "default": "skip",
+          "enum": [
+            "fail",
+            "skip",
+            "warn"
+          ],
+          "title": "Missing",
+          "type": "string"
+        },
+        "output_dir": {
+          "default": "output",
+          "format": "path",
+          "title": "Output Dir",
+          "type": "string"
+        },
+        "shared_reads": {
+          "default": true,
+          "title": "Shared Reads",
+          "type": "boolean"
+        },
+        "work_dir": {
+          "default": "work",
+          "format": "path",
+          "title": "Work Dir",
+          "type": "string"
+        },
+        "workers": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Workers",
+          "type": "integer"
+        }
+      },
+      "title": "RuntimeConfigV2",
+      "type": "object"
+    },
+    "SourceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset": {
+          "minLength": 1,
+          "title": "Dataset",
+          "type": "string"
+        },
+        "overrides": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Overrides",
+          "type": "object"
+        }
+      },
+      "required": [
+        "dataset"
+      ],
+      "title": "SourceConfig",
+      "type": "object"
+    },
+    "TimeConfigV2": {
+      "additionalProperties": false,
+      "properties": {
+        "forecast_interval": {
+          "title": "Forecast Interval",
+          "type": "string"
+        },
+        "forecast_time": {
+          "title": "Forecast Time",
+          "type": "string"
+        },
+        "start_time": {
+          "title": "Start Time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start_time",
+        "forecast_time",
+        "forecast_interval"
+      ],
+      "title": "TimeConfigV2",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "const": "cemc.plots/v2",
+      "title": "Api Version",
+      "type": "string"
+    },
+    "area": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Area"
+    },
+    "kind": {
+      "const": "PlotTask",
+      "title": "Kind",
+      "type": "string"
+    },
+    "plots": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        ]
+      },
+      "minProperties": 1,
+      "title": "Plots",
+      "type": "object"
+    },
+    "runtime": {
+      "$ref": "#/$defs/RuntimeConfigV2"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceConfig"
+    },
+    "time": {
+      "$ref": "#/$defs/TimeConfigV2"
+    }
+  },
+  "required": [
+    "api_version",
+    "kind",
+    "source",
+    "time",
+    "plots"
+  ],
+  "title": "PlotTaskV2",
+  "type": "object"
+}
+

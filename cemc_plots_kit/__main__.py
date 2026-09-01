@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 import typer
 import pandas as pd
@@ -6,11 +7,27 @@ import pandas as pd
 from cedarkit.plots.types import AreaRange
 
 from cemc_plots_kit.task import run_task
+from cemc_plots_kit.task_spec import TaskSpecError, load_task_spec
 from cemc_plots_kit.draw import draw_plot
 from cemc_plots_kit.config import parse_start_time
 
 
 app = typer.Typer()
+
+
+@app.command(help="validate a versioned task without reading data or rendering plots.")
+def validate(task_file: Path = typer.Argument(..., exists=True, dir_okay=False)):
+    try:
+        task_spec = load_task_spec(task_file)
+    except TaskSpecError as exc:
+        typer.echo(json.dumps({"valid": False, "code": "task_validation", "message": str(exc)}), err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps({
+        "valid": True,
+        "api_version": task_spec.api_version,
+        "kind": task_spec.kind,
+        "dataset": task_spec.source.dataset,
+    }, sort_keys=True))
 
 
 @app.command(

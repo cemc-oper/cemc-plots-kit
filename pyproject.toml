@@ -29,10 +29,14 @@ dependencies = [
     "loguru",
     "typer",
     "PyYAML",
+    "pydantic>=2,<3",
     "cedarkit-plots>=2026.8.0",
     "cedar-graph>=2026.8.0",
     "reki>=2026.8.0",
 ]
+
+[project.scripts]
+cemc-plots = "cemc_plots_kit.__main__:app"
 
 [project.urls]
 Homepage = "https://github.com/cemc-oper/cemc-plots-kit"
@@ -49,6 +53,9 @@ namespaces = false
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.package-data]
+cemc_plots_kit = ["catalog/*.yaml", "schemas/*.json"]
 
 [tool.setuptools_scm]
 version_file = "cemc_plots_kit/_version.py"

@@ -1,5 +1,16 @@
 # cemc-plots-kit
 
+## Versioned mounted-GRIB tasks
+
+Use `examples/task-v2-cmadaas-mount.yaml` as the deployment template.  Its
+`storage_base` is task-local; the packaged catalog contains no machine-specific
+mount path.  Validation is offline and performs neither data decoding nor a
+remote CMADAAS request:
+
+```bash
+cemc-plots validate examples/task-v2-cmadaas-mount.yaml
+```
+
 A plotting tool for Numerical Weather Prediction model data of CEMC.
 
 cemc-plots-kit 只包含业务编排逻辑（CLI / 配置 / 任务 / 数据源）；图形本身由

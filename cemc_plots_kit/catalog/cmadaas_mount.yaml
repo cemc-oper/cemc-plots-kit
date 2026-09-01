@@ -1,0 +1,32 @@
+api_version: reki.catalog/v1
+datasets:
+  - id: cma_gfs_gmf_cmadaas_mount
+    aliases: [CMA-GFS-CMADAAS-MOUNT]
+    source:
+      name: local
+      args: [cma_gfs_gmf/grib2/orig]
+      kwargs: {data_class: cmadaas}
+    metadata:
+      provider: cmadaas-mounted-grib
+      display_name: CMA-GFS from CMADAAS mounted GRIB
+  - id: cma_meso_3km_cmadaas_mount
+    aliases: [CMA-MESO-3KM-CMADAAS-MOUNT]
+    source:
+      name: local
+      args: [cma_meso_3km/grib2/orig]
+      kwargs: {data_class: cmadaas}
+    metadata: {provider: cmadaas-mounted-grib}
+  - id: cma_tym_cmadaas_mount
+    aliases: [CMA-TYM-CMADAAS-MOUNT]
+    source:
+      name: local
+      args: [cma_tym/grib2/orig]
+      kwargs: {data_class: cmadaas}
+    metadata: {provider: cmadaas-mounted-grib}
+  - id: cma_geps_perturbation_cmadaas_mount
+    aliases: [CMA-GEPS-PERTURBATION-CMADAAS-MOUNT]
+    source:
+      name: local
+      args: [cma_geps/grib2/orig]
+      kwargs: {data_class: cmadaas}
+    metadata: {provider: cmadaas-mounted-grib, member_required: true}
