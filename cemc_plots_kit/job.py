@@ -17,7 +17,7 @@ from cemc_plots_kit.logger import get_logger
 job_logger = get_logger("job")
 
 
-def run_job(job_config: JobConfig) -> list[Path]:
+def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
     """
     Run a plot job, involves the following steps:
 
@@ -75,7 +75,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
     temporary_path = None
     try:
         job_logger.info(f"running plot job...")
-        panel = run_plot(plot_definition=plot_definition, job_config=job_config)
+        panel = run_plot(plot_definition=plot_definition, job_config=job_config, data_source=data_source)
 
         job_logger.info(f"saving output image... {output_image_file_path}")
         temporary_path = output_image_file_path.with_name(
@@ -95,7 +95,7 @@ def run_job(job_config: JobConfig) -> list[Path]:
     return [output_image_file_path]
 
 
-def run_plot(plot_definition, job_config: JobConfig) -> Panel:
+def run_plot(plot_definition, job_config: JobConfig, *, data_source=None) -> Panel:
     """
     Run a resolved plot definition for one job: build the experiment data
     source, load fields through the definition's ``load_data`` and draw
@@ -121,7 +121,7 @@ def run_plot(plot_definition, job_config: JobConfig) -> Panel:
     })
 
     job_logger.info("loading data...")
-    data_source = create_data_source(expr_config=expr_config)
+    data_source = data_source if data_source is not None else create_data_source(expr_config=expr_config)
     data_loader = (
         DataLoader(provider=data_source)
         if isinstance(data_source, RekiProvider)

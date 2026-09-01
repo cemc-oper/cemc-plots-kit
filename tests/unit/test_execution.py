@@ -23,7 +23,7 @@ def test_serial_run_writes_atomic_manifest(tmp_path, monkeypatch):
     path = tmp_path / "task.yaml"
     path.write_text(TASK, encoding="utf-8")
 
-    def fake_run_job(config):
+    def fake_run_job(config, **kwargs):
         output = config.runtime_config.output_dir / (config.plot_config.plot_name.replace(".", "_") + ".png")
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_bytes(b"png")
@@ -44,8 +44,30 @@ def test_missing_field_is_skipped_and_recorded(tmp_path, monkeypatch):
     path.write_text(TASK, encoding="utf-8")
     monkeypatch.setattr(
         "cemc_plots_kit.execution.run_job",
-        lambda config: (_ for _ in ()).throw(reki.DataNotFoundError(reki.FieldQuery(parameter="t2m"))),
+        lambda config, **kwargs: (_ for _ in ()).throw(reki.DataNotFoundError(reki.FieldQuery(parameter="t2m"))),
     )
     result = run_task_spec(load_task_spec(path), task_file=path)
     assert result["status"] == "partial"
     assert {item["reason"] for item in result["results"]} == {"field_missing"}
+
+
+def test_shared_reads_reuses_one_provider_and_can_be_disabled(tmp_path, monkeypatch):
+    path = tmp_path / "task.yaml"
+    path.write_text(TASK, encoding="utf-8")
+    providers = []
+
+    def fake_run_job(config, *, data_source=None):
+        providers.append(data_source)
+        return []
+
+    monkeypatch.setattr("cemc_plots_kit.execution.run_job", fake_run_job)
+    shared = run_task_spec(load_task_spec(path), task_file=path)
+    assert len(providers) == 2
+    assert providers[0] is providers[1]
+    assert shared["sharing"]["shared_reads"] is True
+
+    providers.clear()
+    path.write_text(TASK.replace("missing: skip", "missing: skip, shared_reads: false"), encoding="utf-8")
+    unshared = run_task_spec(load_task_spec(path), task_file=path)
+    assert providers == [None, None]
+    assert unshared["sharing"]["shared_reads"] is False

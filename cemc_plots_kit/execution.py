@@ -8,6 +8,7 @@ from typing import Any
 
 import pandas as pd
 import reki
+from cedar_graph.data import RekiProvider
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
 from cemc_plots_kit.errors import classify_error
@@ -15,6 +16,25 @@ from cemc_plots_kit.job import run_job
 from cemc_plots_kit.manifest import write_manifest
 from cemc_plots_kit.task_plan import TaskPlan, build_task_plan
 from cemc_plots_kit.task_spec import PlotTaskV2, resolve_task_dataset
+
+
+class ExecutionContext:
+    """Provider resources owned by exactly one serial task execution."""
+
+    def __init__(self, source, *, shared_reads: bool):
+        self.shared_reads = shared_reads
+        self.provider = RekiProvider(source.source) if shared_reads else None
+
+    def provider_for_job(self):
+        return self.provider
+
+    def summary(self) -> dict[str, Any]:
+        cache = self.provider.cache_info if self.provider is not None else {"hits": 0, "misses": 0, "entries": 0}
+        return {"shared_reads": self.shared_reads, "field_cache": dict(cache)}
+
+    def close(self):
+        if self.provider is not None:
+            self.provider._field_cache.clear()
 
 
 def _job_config(job: dict[str, Any], task: PlotTaskV2, plan: TaskPlan, source) -> JobConfig:
@@ -31,6 +51,7 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
     """Run a v2 task serially; output publication is represented even on failure."""
     plan = build_task_plan(task, task_file=task_file)
     source = resolve_task_dataset(task.source)
+    context = ExecutionContext(source, shared_reads=task.runtime.shared_reads)
     results: list[dict[str, Any]] = []
     fatal: Exception | None = None
     started = time()
@@ -39,7 +60,7 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
             results.append({"job_id": job["id"], "status": "skipped", "reason": job.get("skip_reason", job["issues"][0] if job["issues"] else "not_executable")})
             continue
         try:
-            outputs = run_job(_job_config(job, task, plan, source))
+            outputs = run_job(_job_config(job, task, plan, source), data_source=context.provider_for_job())
         except Exception as exc:
             code = classify_error(exc, storage_base=source.source.kwargs.get("storage_base"))
             is_missing = isinstance(exc, reki.DataNotFoundError)
@@ -58,10 +79,12 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
         "status": status,
         "duration_seconds": time() - started,
         "source": {"dataset_id": source.record.dataset_id, "catalog_origin": source.origin, "provider": source.source.name},
+        "sharing": context.summary(),
         "results": results,
     }
     manifest_path = Path(plan.document["runtime"]["output_dir"]) / "task-manifest.json"
     document["manifest_path"] = str(write_manifest(manifest_path, document))
+    context.close()
     if fatal:
         raise fatal
     return document
