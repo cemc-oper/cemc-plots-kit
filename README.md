@@ -1,63 +1,35 @@
 # cemc-plots-kit
 
-## Versioned mounted-GRIB tasks
+`cemc-plots-kit` is a command-line orchestration tool for producing graphics
+from CEMC numerical weather prediction (NWP) data. It owns task configuration,
+data-source selection, scheduling, and output management. Rendering is provided
+by [cedar-graph](https://github.com/cemc-oper/cedar-graph), using either
+packaged YAML recipes or Python plot modules.
 
-Use `examples/task-v2-cmadaas-mount.yaml` as the deployment template.  Its
-`storage_base` is task-local; the packaged catalog contains no machine-specific
-mount path.  Validation is offline and performs neither data decoding nor a
-remote CMADAAS request:
+`plot_type` maps directly to a cedar-graph recipe or module; no per-plot wrapper
+code is required.
 
-```bash
-cemc-plots validate examples/task-v2-cmadaas-mount.yaml
-```
+## Requirements and installation
 
-A plotting tool for Numerical Weather Prediction model data of CEMC.
-
-cemc-plots-kit 只包含业务编排逻辑（CLI / 配置 / 任务 / 数据源）；图形本身由
-[cedar-graph](https://github.com/cemc-oper/cedar-graph) 的**配方**（YAML）或
-Python 图形模块实现，`plot_type` 直接映射，无需逐图包装代码。
-
-旧 task 文件仍支持 v1 业务绑定：`system_name` 或显式 `source` 在 task 层选择
-数据集。v2 的 `source.dataset` 必须解析为本地 mounted CMADaaS catalog 条目；Recipe /
-PlotPlan 只保存稳定 parameter ID、FieldQuery 和时间语义，不保存服务地址或认证信息。
-
-### Versioned task runtime
-
-Use the v2 commands to inspect and execute a task:
+Python 3.11 or later is required. Install the package from PyPI:
 
 ```shell
-cemc-plots validate examples/task-v2-cmadaas-mount.yaml
-cemc-plots plan examples/task-v2-cmadaas-mount.yaml
-cemc-plots explain examples/task-v2-cmadaas-mount.yaml --plot cn.t2m --forecast-time 24h
-cemc-plots run examples/task-v2-cmadaas-mount.yaml
+uv tool install cemc-plots-kit
 ```
 
-`validate`, `plan`, and `explain` do not construct a reader, decode values, draw,
-or write files. `run` writes figures and `task-manifest.json` atomically in the
-configured output directory. The manifest records the task-plan identity, result
-of every job, source identity, and task-local sharing counters; it deliberately
-does not include credentials or complete environment variables.
-
-`runtime.workers: 1` is the deterministic reference executor and retains a
-task-local shared provider when `runtime.shared_reads: true`. Values greater than
-one use isolated processes: each worker rebuilds its provider and file handles,
-and manifest results retain TaskPlan order regardless of completion order. Set
-`shared_reads: false` to compare against independent per-job reads.
-
-## Install
-
-Download the latest source code from GitHub and install manually.
-
-## Getting started
-
-### Single plot
-
-Draw a single figure in command line.
-
-The following command draws a figure for 2m temperature using CMA-GFS data in CMA-HPC.
+For development, install the repository and its test dependencies:
 
 ```shell
-python -m cemc_plots_kit draw \
+uv sync --extra test
+```
+
+## Quick start: draw one plot
+
+The following command renders a 2 m temperature plot from CMA-GFS data on
+CMA-HPC:
+
+```shell
+cemc-plots draw \
   --system-name cma_gfs \
   --plot-type cn.t2m \
   --start-time 2024111300 \
@@ -65,41 +37,44 @@ python -m cemc_plots_kit draw \
   --work-dir .
 ```
 
-The command will generate an image file named `cn_t2m_2024111300_024.png` in current directory.
+It creates `cn_t2m_2024111300_024.png` in the working directory.
 
-`--plot-type` 取值：
+`--plot-type` accepts:
 
-* cedar-graph 配方，如 `cn.t2m`、`cn.h_500_psl`、`cn.rain_24h`（见下表）
-* cedar-graph Python 图形模块（诊断复杂图形），如 `cn.shr.default`、`cn.t_dew_t.default`
-* 外部配方文件路径（`.yaml`/`.yml`），见"外部配方"一节
+- A packaged cedar-graph recipe, such as `cn.t2m`, `cn.h_500_psl`, or
+  `cn.rain_24h`.
+- A cedar-graph Python plot module for more complex diagnostic products, such
+  as `cn.shr.default` or `cn.t_dew_t.default`.
+- A path to an external `.yaml` or `.yml` recipe.
 
-内置配方（`cn.` 前缀）：
+## Packaged recipes
 
-| plot_type | 图形 |
-|---|---|
-| `cn.t2m` | 2 米温度 |
-| `cn.rh2m` | 2 米相对湿度 |
-| `cn.h_500_psl` | 500 hPa 高度场 + 海平面气压 |
-| `cn.h_500_wind_850` | 500 hPa 高度场 + 850 hPa 风 |
-| `cn.kidx_wind` | K 指数 + 风（需 `wind_level` 参数） |
-| `cn.bli_wind` / `cn.cape_wind` / `cn.cin_wind` | 对流指数 + 风（需 `wind_level` 参数） |
-| `cn.cdbz` | 组合反射率 |
-| `cn.wind_10m` | 10 米风 |
-| `cn.rain_24h` | 24 小时累计降水 |
-| `cn.rain_wind_10m` | 间隔累计降水 + 10 米风（需 `interval` 参数） |
-| `cn.prep_24h` | 24 小时降水相态（雨/雨夹雪/雪） |
+The following recipes use the `cn.` namespace:
 
-### Batch plot
+| `plot_type` | Product |
+| --- | --- |
+| `cn.t2m` | 2 m temperature |
+| `cn.rh2m` | 2 m relative humidity |
+| `cn.h_500_psl` | 500 hPa geopotential height and mean sea-level pressure |
+| `cn.h_500_wind_850` | 500 hPa geopotential height and 850 hPa wind |
+| `cn.kidx_wind` | K index and wind; requires `wind_level` |
+| `cn.bli_wind`, `cn.cape_wind`, `cn.cin_wind` | Convective index and wind; require `wind_level` |
+| `cn.cdbz` | Composite reflectivity |
+| `cn.wind_10m` | 10 m wind |
+| `cn.rain_24h` | 24-hour accumulated precipitation |
+| `cn.rain_wind_10m` | Interval precipitation and 10 m wind; requires `interval` |
+| `cn.prep_24h` | 24-hour precipitation type (rain, sleet, and snow) |
 
-Draw a batch of figures using a task file.
+## Run a task
 
-Create a task file named `task.yaml` with content:
+A task file defines a time range, data source, plots, and runtime behavior.
+Create `task.yaml`:
 
 ```yaml
 runtime:
   base_work_dir: .
 
-# Use catalog defaults.  CMA-GFS is bound to its canonical local dataset.
+# Use catalog defaults. CMA-GFS resolves to its canonical local dataset.
 source: {}
 
 system_name: CMA-GFS
@@ -114,7 +89,70 @@ plots:
   cn.rain_24h: on
 ```
 
-`source: {}` 使用 catalog 的默认绑定。旧 task 的显式目录和文件名写法仍然支持，且优先于 catalog：
+Run it with:
+
+```shell
+cemc-plots task --task-file ./task.yaml
+```
+
+This example produces height-and-pressure plots for forecast hours 0 through
+48, and precipitation plots for forecast hours 24 through 48. The default
+availability check excludes `cn.rain_24h` at forecast hour 0 because a 24-hour
+accumulation is not available then.
+
+## Plot configuration
+
+Each key in `plots` is a plot type or an external recipe path. Its value can be
+one of the following forms:
+
+```yaml
+plots:
+  # Enable a plot without parameters.
+  cn.t2m: on
+
+  # Pass one parameter mapping to a recipe.
+  cn.rain_wind_10m:
+    interval: 3h
+
+  # Render the same plot with several parameter mappings.
+  cn.rain_wind_10m:
+    - { interval: 1h }
+    - { interval: 3h }
+```
+
+Parameterized output names include a parameter suffix, for example
+`cn_rain_wind_10m_interval_3h_2024111300_024.png`.
+
+## Data-source selection
+
+For current tasks, use `source.dataset` to select a local mounted CMADaaS
+catalog entry. A v2 task keeps only stable parameter IDs, `FieldQuery` values,
+and time semantics in its Recipe or PlotPlan. It never stores service endpoints
+or credentials.
+
+The deployment template is
+[`examples/task-v2-cmadaas-mount.yaml`](./examples/task-v2-cmadaas-mount.yaml).
+Its `storage_base` is task-local, while the packaged catalog contains no
+machine-specific mount paths:
+
+```shell
+cemc-plots validate examples/task-v2-cmadaas-mount.yaml
+cemc-plots plan examples/task-v2-cmadaas-mount.yaml
+cemc-plots explain examples/task-v2-cmadaas-mount.yaml \
+  --plot cn.t2m --forecast-time 24h
+cemc-plots run examples/task-v2-cmadaas-mount.yaml
+```
+
+`validate`, `plan`, and `explain` are offline operations: they do not create a
+reader, decode data, make a CMADaaS request, render a figure, or write output.
+`run` writes figures and `task-manifest.json` atomically to the configured
+output directory. The manifest records task-plan identity, each job result,
+source identity, and task-local sharing counters; it intentionally excludes
+credentials and complete environment-variable values.
+
+Legacy v1 task bindings remain supported. `system_name` or an explicit `source`
+selects the dataset at the task layer. Explicit legacy directories and file-name
+templates take precedence over catalog defaults:
 
 ```yaml
 source:
@@ -122,76 +160,38 @@ source:
   data_file_name_template: gmf.gra.{start_time_label}{forecast_hour_label}.grb2
 ```
 
-相对 `data_dir` 以 task 文件所在目录为基准。运行时会把这对 v1 字段转换为受限的 `file-pattern` source；图题和输出文件名继续使用原有的 `system_name`。
+A relative `data_dir` is resolved from the directory containing the task file.
+At runtime, these v1 fields are converted to a constrained `file-pattern`
+source. Existing `system_name` values continue to determine titles and output
+file names.
 
-Execute the following shell command to draw figures:
+## Runtime behavior
 
-```shell
-python -m cemc_plots_kit task --task-file ./task.yaml
-```
+`runtime.workers: 1` is the deterministic reference executor. With
+`runtime.shared_reads: true`, it keeps a task-local shared provider. Values
+greater than one use isolated processes, so each worker recreates its provider
+and file handles. Manifest entries remain in TaskPlan order even when work
+completes in a different order. Set `shared_reads: false` to compare against
+independent per-job reads.
 
-When the command is executed, there are 14 image files in output directory:
+## External recipes
 
-```text
-cn_h_500_psl_2024111300_000.png
-cn_h_500_psl_2024111300_006.png
-cn_h_500_psl_2024111300_012.png
-cn_h_500_psl_2024111300_018.png
-cn_h_500_psl_2024111300_024.png
-cn_h_500_psl_2024111300_030.png
-cn_h_500_psl_2024111300_036.png
-cn_h_500_psl_2024111300_042.png
-cn_h_500_psl_2024111300_048.png
-cn_rain_24h_2024111300_024.png
-cn_rain_24h_2024111300_030.png
-cn_rain_24h_2024111300_036.png
-cn_rain_24h_2024111300_042.png
-cn_rain_24h_2024111300_048.png
-```
-
-注意 `cn.rain_24h` 需要 24 小时累计场，0h 时效由配方的 `check_available`
-默认实现自动过滤。
-
-### plots 段格式
-
-`plots` 段的每个键是一个 plot_type（或外部配方路径），值支持三种形式：
-
-```yaml
-plots:
-  # 1. 开关：on/off，无参数
-  cn.t2m: on
-
-  # 2. 参数映射：传递给配方参数
-  cn.rain_wind_10m:
-    interval: 3h
-
-  # 3. 参数列表：同一图形出多组参数（如多个降水时段）
-  cn.rain_wind_10m:
-    - { interval: 1h }
-    - { interval: 3h }
-```
-
-带参数的输出文件/目录名会追加参数后缀，如
-`cn_rain_wind_10m_interval_3h_2024111300_024.png`。
-
-### 外部配方
-
-`plots` 段的键为 `.yaml`/`.yml` 路径时，按外部配方文件加载——
-不等待 cedar-graph 发版即可增加新图形。相对路径基于 task 文件所在目录解析，
-输出文件名取配方文件的 stem：
+Use a `.yaml` or `.yml` path as a `plots` key to load an external recipe. This
+lets you add a product without waiting for a cedar-graph release. Relative paths
+are resolved from the task-file directory, and the output filename uses the
+recipe filename stem:
 
 ```yaml
 plots:
   cn.t2m: on
-  recipes/t2m_custom.yaml: on        # 相对 task 文件目录
-  /data/opr/recipes/my_plot.yaml: on # 绝对路径
+  recipes/t2m_custom.yaml: on        # Relative to the task-file directory.
+  /data/opr/recipes/my_plot.yaml: on # Absolute path.
 ```
 
-配方语法见 cedar-graph 的配方编写文档（`cedar_graph/recipes/cn/` 下的
-内置配方可作为示例）。`draw` 命令的 `--plot-type` 同样接受配方路径：
+`draw --plot-type` also accepts a recipe path:
 
 ```shell
-python -m cemc_plots_kit draw \
+cemc-plots draw \
   --system-name cma_gfs \
   --plot-type ./recipes/t2m_custom.yaml \
   --start-time 2024111300 \
@@ -199,10 +199,12 @@ python -m cemc_plots_kit draw \
   --work-dir .
 ```
 
-完整用例见 [examples/](./examples) 目录。
+Refer to the cedar-graph recipe authoring documentation and its packaged
+`cedar_graph/recipes/cn/` recipes for syntax and examples. More complete task
+examples are available in [examples/](./examples).
 
-## LICENSE
+## License
 
-Copyright &copy; 2024, developers at cemc-oper.
+Copyright &copy; 2024-2026, developers at cemc-oper.
 
-`cemc-plots-kit` is licensed under [Apache License V2.0](./LICENSE)
+`cemc-plots-kit` is licensed under the [Apache License 2.0](./LICENSE).
