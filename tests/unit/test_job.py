@@ -87,6 +87,13 @@ class TestRunJob:
             run_job(job_config=job_config)
         assert os.getcwd() == before
 
+    def test_run_job_never_changes_working_directory(
+            self, mock_data_source, monkeypatch, tmp_path, start_time, forecast_time, system_name
+    ):
+        job_config = _make_job_config(tmp_path, "cn.t2m", start_time, forecast_time, system_name)
+        monkeypatch.setattr("cemc_plots_kit.job.os.chdir", lambda path: pytest.fail("run_job changed cwd"))
+        run_job(job_config)
+
     """端到端：MockDataSource 替换数据源，run_job 出图。"""
 
     def test_run_job_recipe(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):

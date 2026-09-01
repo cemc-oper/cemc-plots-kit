@@ -72,24 +72,25 @@ def run_job(job_config: JobConfig) -> list[Path]:
         base_dir=plot_config.base_dir,
     )
 
-    previous_dir = os.getcwd()
-
-    job_logger.info(f"entering work dir... {current_work_dir}")
-    os.chdir(current_work_dir)
-
+    temporary_path = None
     try:
         job_logger.info(f"running plot job...")
         panel = run_plot(plot_definition=plot_definition, job_config=job_config)
 
         job_logger.info(f"saving output image... {output_image_file_path}")
-        panel.save(output_image_file_path)
+        temporary_path = output_image_file_path.with_name(
+            f".{output_image_file_path.stem}.tmp{output_image_file_path.suffix}"
+        )
+        panel.save(temporary_path)
+        os.replace(temporary_path, output_image_file_path)
     finally:
-        # A task must never leak its per-job directory to the next task, even
-        # when loading, plotting, or saving raises.
-        plt.clf()
-        plt.close("all")
-        job_logger.info(f"exiting work dir... {previous_dir}")
-        os.chdir(previous_dir)
+        if temporary_path is not None and temporary_path.exists():
+            temporary_path.unlink()
+        # This job owns only its own panel.  Closing all pyplot figures would
+        # incorrectly dispose of a caller's unrelated figure.
+        figure = getattr(locals().get("panel"), "_fig", None)
+        if figure is not None:
+            plt.close(figure)
 
     return [output_image_file_path]
 

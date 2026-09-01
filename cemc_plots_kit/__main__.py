@@ -9,6 +9,7 @@ from cedarkit.plots.types import AreaRange
 from cemc_plots_kit.task import run_task
 from cemc_plots_kit.task_spec import TaskSpecError, load_task_spec
 from cemc_plots_kit.task_plan import TaskPlanError, build_task_plan, explain_task_plan
+from cemc_plots_kit.execution import run_task_spec
 from cemc_plots_kit.draw import draw_plot
 from cemc_plots_kit.config import parse_start_time
 
@@ -55,6 +56,16 @@ def explain(
     except (TaskSpecError, TaskPlanError) as exc:
         typer.echo(json.dumps({"valid": False, "code": "task_explain", "message": str(exc)}), err=True)
         raise typer.Exit(code=2) from exc
+
+
+@app.command(help="execute a versioned task with one deterministic worker.")
+def run(task_file: Path = typer.Argument(..., exists=True, dir_okay=False)):
+    try:
+        result = run_task_spec(load_task_spec(task_file), task_file=task_file)
+    except (TaskSpecError, TaskPlanError) as exc:
+        typer.echo(json.dumps({"valid": False, "code": "task_run", "message": str(exc)}), err=True)
+        raise typer.Exit(code=2) from exc
+    typer.echo(json.dumps(result, sort_keys=True))
 
 
 @app.command(

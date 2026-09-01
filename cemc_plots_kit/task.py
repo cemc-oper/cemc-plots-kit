@@ -37,6 +37,10 @@ def run_task(task_file_path: Path):
     """
     task_file_path = Path(task_file_path)
     task_config = load_task_config(task_file_path=task_file_path)
+    if task_config.get("api_version") == "cemc.plots/v2":
+        from cemc_plots_kit.execution import run_task_spec
+        from cemc_plots_kit.task_spec import load_task_spec
+        return run_task_spec(load_task_spec(task_file_path), task_file=task_file_path)
 
     area = None
     if "area" in task_config:
