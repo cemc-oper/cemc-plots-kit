@@ -97,6 +97,11 @@ def mounted_catalog_path() -> Path:
 
 def resolve_task_source(source: SourceConfig) -> reki.SourceSpec:
     """Resolve a mounted source without opening a provider or contacting a service."""
+    return resolve_task_dataset(source).source
+
+
+def resolve_task_dataset(source: SourceConfig):
+    """Resolve the catalog record and apply a task-local storage override."""
     catalog = reki.load_catalog(plugins=False, user=True, explicit=mounted_catalog_path())
     try:
         resolved = catalog.resolve(source.dataset)
@@ -107,7 +112,15 @@ def resolve_task_source(source: SourceConfig) -> reki.SourceSpec:
         raise TaskSpecError("source policy requires a local source with data_class=cmadaas")
     kwargs = dict(spec.kwargs)
     kwargs.update(source.overrides)
-    return reki.SourceSpec(spec.name, spec.args, kwargs)
+    # Keep the resolved record/origin available to a diagnostic TaskPlan while
+    # replacing only the source construction arguments owned by the task.
+    from reki.catalog.model import ResolvedDataset
+    return ResolvedDataset(
+        record=resolved.record,
+        source=reki.SourceSpec(spec.name, spec.args, kwargs),
+        origin=resolved.origin,
+        replaced_origins=resolved.replaced_origins,
+    )
 
 
 def convert_v1_task(value: dict[str, Any]) -> dict[str, Any]:
