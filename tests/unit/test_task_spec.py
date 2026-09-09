@@ -68,7 +68,7 @@ def test_v1_conversion_is_pure_and_keeps_plot_forms():
 
 
 def test_packaged_schema_has_no_drift():
-    packaged = json.loads((Path(__file__).parents[2] / "cemc_plots_kit/schemas/task-v2.json").read_text())
+    packaged = json.loads((Path(__file__).parents[2] / "src/cemc_plots_kit/schemas/task-v2.json").read_text())
     assert packaged == PlotTaskV2.model_json_schema()
 
 

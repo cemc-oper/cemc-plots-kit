@@ -48,9 +48,12 @@ test = ["pytest"]
 cov = ["pytest-cov", "codecov"]
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 exclude = ["tests*", "docs", "example"]
 namespaces = false
+
+[tool.setuptools.package-dir]
+"" = "src"
 
 [tool.setuptools]
 include-package-data = true
@@ -59,4 +62,4 @@ include-package-data = true
 cemc_plots_kit = ["catalog/*.yaml", "schemas/*.json"]
 
 [tool.setuptools_scm]
-version_file = "cemc_plots_kit/_version.py"
+version_file = "src/cemc_plots_kit/_version.py"
