@@ -80,6 +80,13 @@ class RuntimeConfigV2(StrictModel):
     shared_reads: bool = True
 
 
+class AreaConfigV2(StrictModel):
+    start_longitude: float
+    end_longitude: float
+    start_latitude: float
+    end_latitude: float
+
+
 class PlotTaskV2(StrictModel):
     api_version: Literal["cemc.plots/v2"]
     kind: Literal["PlotTask"]
@@ -90,7 +97,7 @@ class PlotTaskV2(StrictModel):
         min_length=1,
         description="v3 product ID or external v3 YAML path mapped to parameters; cn.ens_t2m requires member_ids",
     )
-    area: dict[str, float] | None = None
+    area: AreaConfigV2 | None = None
 
 
 def mounted_catalog_path() -> Path:

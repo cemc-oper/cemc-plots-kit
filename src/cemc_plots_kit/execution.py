@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 import reki
 from cedar_graph.data import RekiProvider
+from cedarkit.plots.types import AreaRange
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
 from cemc_plots_kit.errors import classify_error
@@ -27,9 +28,9 @@ class TaskExecutionError(RuntimeError):
 class ExecutionContext:
     """Provider resources owned by exactly one serial task execution."""
 
-    def __init__(self, source, *, shared_reads: bool):
+    def __init__(self, source, *, shared_reads: bool, region=None):
         self.shared_reads = shared_reads
-        self.provider = RekiProvider(source.source) if shared_reads else None
+        self.provider = RekiProvider(source.source, region=region) if shared_reads else None
 
     def provider_for_job(self):
         return self.provider
@@ -45,8 +46,11 @@ class ExecutionContext:
 
 def _job_config(job: dict[str, Any], task: PlotTaskV2, plan: TaskPlan, source) -> JobConfig:
     runtime = plan.document["runtime"]
+    area = task.area.model_dump() if task.area is not None else None
     return JobConfig(
-        expr_config=ExprConfig(system_name=source.record.dataset_id, data_dir="", source_spec=source.source, dataset_id=source.record.dataset_id),
+        expr_config=ExprConfig(system_name=source.record.dataset_id, data_dir="", source_spec=source.source,
+                               dataset_id=source.record.dataset_id,
+                               area=AreaRange(**area) if area is not None else None),
         runtime_config=RuntimeConfig(work_dir=Path(runtime["work_dir"]), output_dir=Path(runtime["output_dir"])),
         time_config=TimeConfig(start_time=pd.Timestamp(task.time.start_time), forecast_time=pd.Timedelta(job["forecast_time"])),
         plot_config=PlotConfig(plot_name=job["plot"], plot_params=job["params"], base_dir=Path(plan.document["task"]["file"]).parent),
@@ -66,9 +70,10 @@ def _run_group(group: list[tuple[int, str, JobConfig]], provider, storage_base: 
     return results
 
 
-def _run_worker_group(group: list[tuple[int, str, JobConfig]], source_spec, shared_reads: bool, storage_base: str | None) -> list[tuple[int, dict[str, Any]]]:
+def _run_worker_group(group: list[tuple[int, str, JobConfig]], source_spec, shared_reads: bool,
+                      storage_base: str | None, region=None) -> list[tuple[int, dict[str, Any]]]:
     """Run one group in a child process, rebuilding all reader-owned state."""
-    provider = RekiProvider(source_spec) if shared_reads else None
+    provider = RekiProvider(source_spec, region=region) if shared_reads else None
     try:
         return _run_group(group, provider, storage_base)
     finally:
@@ -109,14 +114,14 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
     fatal = False
 
     if task.runtime.workers == 1:
-        context = ExecutionContext(source, shared_reads=task.runtime.shared_reads)
+        region = task.area.model_dump() if task.area is not None else None
+        context = ExecutionContext(source, shared_reads=task.runtime.shared_reads, region=region)
         try:
             for index, job, config in executable:
                 record, failed = _result_from_worker(_run_group([(index, job["id"], config)], context.provider_for_job(), source.source.kwargs.get("storage_base"))[0][1], task.runtime.missing)
                 by_index[index] = record
                 if failed:
                     fatal = True
-                    break
             sharing = context.summary()
         finally:
             context.close()
@@ -124,10 +129,23 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
         groups = _worker_groups(executable)
         if groups:
             with ProcessPoolExecutor(max_workers=min(task.runtime.workers, len(groups)), mp_context=get_context("spawn")) as pool:
-                futures = [pool.submit(_run_worker_group, group, source.source, task.runtime.shared_reads, source.source.kwargs.get("storage_base")) for group in groups]
+                region = task.area.model_dump() if task.area is not None else None
+                futures = [pool.submit(_run_worker_group, group, source.source, task.runtime.shared_reads,
+                                       source.source.kwargs.get("storage_base"), region) for group in groups]
                 try:
                     for group, future in zip(groups, futures):
-                        for index, item in future.result():
+                        try:
+                            items = future.result()
+                        except Exception as exc:
+                            index, job_id, _ = group[0]
+                            by_index[index] = {
+                                "job_id": job_id,
+                                "status": "failed",
+                                "error": {"code": "worker_crash", "type": type(exc).__name__, "message": str(exc)},
+                            }
+                            fatal = True
+                            continue
+                        for index, item in items:
                             record, failed = _result_from_worker(item, task.runtime.missing)
                             by_index[index] = record
                             fatal = fatal or failed
@@ -135,16 +153,6 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
                     for future in futures:
                         future.cancel()
                     raise
-                except Exception as exc:
-                    for future in futures:
-                        future.cancel()
-                    index, job_id, _ = group[0]
-                    by_index[index] = {
-                        "job_id": job_id,
-                        "status": "failed",
-                        "error": {"code": "worker_crash", "type": type(exc).__name__, "message": str(exc)},
-                    }
-                    fatal = True
         sharing = {"shared_reads": task.runtime.shared_reads, "field_cache": {"hits": 0, "misses": 0, "entries": 0}, "worker_groups": len(groups)}
 
     results: list[dict[str, Any]] = []

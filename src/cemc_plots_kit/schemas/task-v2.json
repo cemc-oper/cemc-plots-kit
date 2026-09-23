@@ -1,5 +1,34 @@
 {
   "$defs": {
+    "AreaConfigV2": {
+      "additionalProperties": false,
+      "properties": {
+        "end_latitude": {
+          "title": "End Latitude",
+          "type": "number"
+        },
+        "end_longitude": {
+          "title": "End Longitude",
+          "type": "number"
+        },
+        "start_latitude": {
+          "title": "Start Latitude",
+          "type": "number"
+        },
+        "start_longitude": {
+          "title": "Start Longitude",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start_longitude",
+        "end_longitude",
+        "start_latitude",
+        "end_latitude"
+      ],
+      "title": "AreaConfigV2",
+      "type": "object"
+    },
     "RuntimeConfigV2": {
       "additionalProperties": false,
       "properties": {
@@ -97,17 +126,13 @@
     "area": {
       "anyOf": [
         {
-          "additionalProperties": {
-            "type": "number"
-          },
-          "type": "object"
+          "$ref": "#/$defs/AreaConfigV2"
         },
         {
           "type": "null"
         }
       ],
-      "default": null,
-      "title": "Area"
+      "default": null
     },
     "kind": {
       "const": "PlotTask",

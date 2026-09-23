@@ -2,8 +2,11 @@ import json
 
 import pytest
 import reki
+from cedarkit.plots.types import AreaRange
 
-from cemc_plots_kit.execution import run_task_spec
+from cemc_plots_kit.config import ExprConfig
+from cemc_plots_kit.execution import TaskExecutionError, run_task_spec
+from cemc_plots_kit.job import create_data_source
 from cemc_plots_kit.manifest import write_manifest
 from cemc_plots_kit.task_spec import load_task_spec
 
@@ -18,6 +21,18 @@ time: {start_time: 2026071600, forecast_time: 24h, forecast_interval: 24h}
 runtime: {work_dir: work, output_dir: output, missing: skip}
 plots: {cn.t2m: true}
 """
+
+
+def test_owned_provider_receives_task_area_without_modifying_source():
+    source = reki.SourceSpec("local", args=("synthetic",))
+    area = AreaRange(95, 125, 20, 45)
+    provider = create_data_source(ExprConfig("CMA-GFS", "", area=area, source_spec=source))
+    try:
+        assert provider.region == {"start_longitude": 95, "end_longitude": 125,
+                                   "start_latitude": 20, "end_latitude": 45}
+        assert source.kwargs == {}
+    finally:
+        provider.close()
 
 
 def test_manifest_replace_failure_cleans_temp_and_preserves_previous(tmp_path, monkeypatch):
@@ -128,3 +143,66 @@ def test_multiple_workers_rebuild_providers_and_keep_result_order(tmp_path, monk
         "cn.t2m:P1DT0H0M0S:44136fa355b3",
     ]
     assert result["sharing"]["worker_groups"] == 2
+
+
+def test_serial_failure_does_not_contaminate_following_job(tmp_path, monkeypatch):
+    path = tmp_path / "task.yaml"
+    path.write_text(TASK.replace("missing: skip", "missing: fail"), encoding="utf-8")
+    seen = []
+
+    def fake_run_job(config, *, data_source=None):
+        seen.append((config.time_config.forecast_time, data_source))
+        if len(seen) == 1:
+            raise RuntimeError("first job failed")
+        return []
+
+    monkeypatch.setattr("cemc_plots_kit.execution.run_job", fake_run_job)
+    with pytest.raises(TaskExecutionError, match="first job failed"):
+        run_task_spec(load_task_spec(path), task_file=path)
+    manifest = json.loads((tmp_path / "output/task-manifest.json").read_text())
+    assert [item["status"] for item in manifest["results"]] == ["failed", "success"]
+    assert len(seen) == 2 and seen[0][1] is seen[1][1]
+    assert seen[0][1].cache_info["entries"] == 0
+
+
+def test_worker_failure_keeps_later_future_and_region_local(tmp_path, monkeypatch):
+    path = tmp_path / "task.yaml"
+    path.write_text(TASK.replace("missing: skip", "missing: fail, workers: 2") +
+                    "area: {start_longitude: 95, end_longitude: 125, start_latitude: 20, end_latitude: 45}\n",
+                    encoding="utf-8")
+    seen = []
+
+    class Future:
+        def __init__(self, value=None, error=None):
+            self.value, self.error = value, error
+
+        def result(self):
+            if self.error:
+                raise self.error
+            return self.value
+
+        def cancel(self):
+            return False
+
+    class InlineProcessPool:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def submit(self, function, group, source, shared, storage, region):
+            seen.append((group, region))
+            if len(seen) == 1:
+                return Future(error=RuntimeError("worker failed"))
+            return Future(value=[(group[0][0], {"job_id": group[0][1], "status": "success", "outputs": []})])
+
+    monkeypatch.setattr("cemc_plots_kit.execution.ProcessPoolExecutor", InlineProcessPool)
+    with pytest.raises(TaskExecutionError, match="worker failed"):
+        run_task_spec(load_task_spec(path), task_file=path)
+    manifest = json.loads((tmp_path / "output/task-manifest.json").read_text())
+    assert [item["status"] for item in manifest["results"]] == ["failed", "success"]
+    assert all(region["start_longitude"] == 95 for _, region in seen)

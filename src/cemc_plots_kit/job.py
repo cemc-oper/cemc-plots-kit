@@ -1,4 +1,5 @@
 from pathlib import Path
+from dataclasses import asdict
 import inspect
 import os
 from uuid import uuid4
@@ -170,7 +171,8 @@ def create_data_source(expr_config: ExprConfig) -> DataSource:
     Kept as a separate function so tests can substitute a mock data source.
     """
     if expr_config.source_spec is not None:
-        return RekiProvider(expr_config.source_spec)
+        return RekiProvider(expr_config.source_spec,
+                            region=asdict(expr_config.area) if expr_config.area is not None else None)
     return ExprLocalDataSource(expr_config=expr_config)
 
 
