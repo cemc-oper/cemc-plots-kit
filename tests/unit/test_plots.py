@@ -6,10 +6,12 @@ import pytest
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
 from cemc_plots_kit.plots import (
+    WorkflowProduct,
     check_plot_available,
     get_plot_definition,
     get_plot_label,
     is_recipe_path,
+    workflow_context,
 )
 
 
@@ -46,8 +48,18 @@ class TestGetPlotLabel:
 class TestGetPlotDefinition:
     def test_recipe_plot_type(self):
         definition = get_plot_definition("cn.t2m")
-        for attr in ("PlotMetadata", "PlotData", "load_data", "plot", "check_available"):
-            assert hasattr(definition, attr), attr
+        assert isinstance(definition, WorkflowProduct)
+        assert definition.recipe.recipe.metadata.name == "cn.t2m"
+        assert definition.recipe.recipe.api_version == "cedarkit.plots/v3"
+
+    def test_t2m_style_follows_start_month(self):
+        product = get_plot_definition("cn.t2m")
+        summer = product.compile(workflow_context(
+            TimeConfig(pd.Timestamp("2024-07-01"), pd.Timedelta("24h")), PlotConfig("cn.t2m")))
+        winter = product.compile(workflow_context(
+            TimeConfig(pd.Timestamp("2024-01-01"), pd.Timedelta("24h")), PlotConfig("cn.t2m")))
+        assert summer.content.charts[0].plots[0].style == "cemc.t2m:cn_summer"
+        assert winter.content.charts[0].plots[0].style == "cemc.t2m:cn_winter"
 
     def test_python_module_plot_type(self):
         """诊断复杂图形保留 Python 逃生舱（设计文档 D6）。"""

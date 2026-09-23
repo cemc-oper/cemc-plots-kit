@@ -63,3 +63,7 @@ cemc_plots_kit = ["catalog/*.yaml", "schemas/*.json"]
 
 [tool.setuptools_scm]
 version_file = "src/cemc_plots_kit/_version.py"
+
+[tool.uv.sources]
+cedarkit-plots = { path = "../../repo/cedarkit-plots", editable = true }
+cedar-graph = { path = "../../repo/cedar-graph", editable = true }

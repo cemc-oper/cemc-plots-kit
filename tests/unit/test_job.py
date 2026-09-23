@@ -105,6 +105,9 @@ class TestRunJob:
         output_file = output_file_list[0]
         assert output_file == Path(tmp_path, "output", "cn_t2m_2024070100_024.png")
         assert output_file.exists()
+        assert output_file.stat().st_size > 0
+        assert len(mock_data_source.workflow_requests) == 1
+        assert mock_data_source.workflow_requests[0].key.parameter_id == "cedarkit.t2m"
 
     def test_run_job_recipe_with_params(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
         job_config = _make_job_config(

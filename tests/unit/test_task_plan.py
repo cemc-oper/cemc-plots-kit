@@ -20,6 +20,20 @@ plots: {cn.t2m: true, cn.h_500_psl: true, cn.rain_24h: true}
 """
 
 
+def test_t2m_task_plan_uses_v3_workflow_without_reading_fields(tmp_path, monkeypatch):
+    task_file = tmp_path / "task.yaml"
+    task_file.write_text(TASK.replace(
+        "plots: {cn.t2m: true, cn.h_500_psl: true, cn.rain_24h: true}",
+        "plots: {cn.t2m: true}"), encoding="utf-8")
+    monkeypatch.setattr(reki, "from_source", lambda *args, **kwargs: pytest.fail("plan opened a source"))
+    plan = build_task_plan(load_task_spec(task_file), task_file=task_file)
+    jobs = plan.to_dict()["jobs"]
+    assert len(jobs) == 2
+    assert all(job["executable"] and job["plot_plan"]["plan_schema_version"] == 3 for job in jobs)
+    assert all(job["plot_plan"]["recipe"]["identity"] == "cn.t2m" for job in jobs)
+    assert len(plan.to_dict()["requests"]) == 2
+
+
 def test_build_task_plan_is_static_and_deduplicates_requests(tmp_path, monkeypatch):
     task_file = tmp_path / "task.yaml"
     task_file.write_text(TASK, encoding="utf-8")

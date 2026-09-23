@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 from cedar_graph.quickplot import BASE_MODULE_NAME, BASE_RECIPE_NAME
+from cedar_graph.recipes.workflow_product import WorkflowProduct, select_workflow_product
+from cedarkit.plots.workflow.plan import CompileContext
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
 
@@ -43,6 +45,10 @@ def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = N
     图形定义对象（``PlotMetadata`` / ``load_data`` / ``plot`` /
     可选 ``check_available``）。
     """
+    selected = select_workflow_product(plot_name)
+    if selected is not None:
+        return selected
+
     from cedar_graph.recipes.engine import get_recipe_engine
     from cedarkit.plots.engine.loader import get_plot_definition as load_definition
 
@@ -67,10 +73,21 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
     配方由引擎默认实现（``time_diff`` 要求 ``forecast_time >= interval``）；
     定义未提供 ``check_available`` 时视为可用。
     """
+    if isinstance(plot_definition, WorkflowProduct):
+        plot_definition.compile(workflow_context(time_config, plot_config))
+        return True
     check = getattr(plot_definition, "check_available", None)
     if check is None:
         return True
     return check(time_config=time_config, plot_config=plot_config)
+
+
+def workflow_context(time_config: TimeConfig, plot_config: PlotConfig) -> CompileContext:
+    params = dict(plot_config.plot_params)
+    if plot_config.plot_name == "cn.t2m" and "style_variant" not in params:
+        params["style_variant"] = "cn_summer" if 5 <= time_config.start_time.month <= 9 else "cn_winter"
+    return CompileContext(start_time=time_config.start_time, forecast_time=time_config.forecast_time,
+                          params=params)
 
 
 def get_plot_label(plot_name: str, plot_params: Optional[dict] = None) -> str:

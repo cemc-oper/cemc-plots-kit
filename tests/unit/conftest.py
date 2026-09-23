@@ -9,6 +9,7 @@ import sys
 
 import pandas as pd
 import matplotlib
+import cartopy.crs  # Load PROJ before the synthetic provider imports ecCodes.
 import pytest
 from loguru import logger
 

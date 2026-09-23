@@ -15,7 +15,7 @@ from cedarkit.plots.plan import CompileContext, compile_recipe
 from cedarkit.plots.recipe import load_recipe
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
-from cemc_plots_kit.plots import check_plot_available, get_plot_definition
+from cemc_plots_kit.plots import WorkflowProduct, check_plot_available, get_plot_definition, workflow_context
 from cemc_plots_kit.task import parse_plots_config
 from cemc_plots_kit.task_spec import PlotTaskV2, resolve_task_dataset
 
@@ -92,16 +92,21 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
             if not available:
                 jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "skip_reason": "plot_unavailable_for_time", "issues": []})
                 continue
-            recipe_path = _recipe_path(plot_name, base_dir)
-            if recipe_path is None:
-                issues.append({"code": "python_plot_fallback", "job_id": job_id, "message": "static PlotPlan is unavailable for a Python plot module"})
-                jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "issues": ["python_plot_fallback"]})
-                continue
             try:
-                plot_plan = compile_recipe(
-                    load_recipe(recipe_path),
-                    CompileContext(start_time=start_time, forecast_time=forecast_time, params=params),
-                ).to_dict()
+                if isinstance(definition, WorkflowProduct):
+                    plot_plan = definition.compile(workflow_context(
+                        TimeConfig(start_time=start_time, forecast_time=forecast_time),
+                        PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir))).to_dict()
+                else:
+                    recipe_path = _recipe_path(plot_name, base_dir)
+                    if recipe_path is None:
+                        issues.append({"code": "python_plot_fallback", "job_id": job_id, "message": "static PlotPlan is unavailable for a Python plot module"})
+                        jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "issues": ["python_plot_fallback"]})
+                        continue
+                    plot_plan = compile_recipe(
+                        load_recipe(recipe_path),
+                        CompileContext(start_time=start_time, forecast_time=forecast_time, params=params),
+                    ).to_dict()
             except Exception as exc:
                 issues.append({"code": "plan_compile_error", "job_id": job_id, "message": str(exc)})
                 jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "issues": ["plan_compile_error"]})
