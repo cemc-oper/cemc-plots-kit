@@ -1,6 +1,4 @@
 """plot_type 解析与输出命名测试（cemc_plots_kit.plots）。"""
-import types
-
 import pandas as pd
 import pytest
 
@@ -70,12 +68,21 @@ class TestGetPlotDefinition:
         assert summer.content.charts[0].plots[0].style == "cemc.t2m:cn_summer"
         assert winter.content.charts[0].plots[0].style == "cemc.t2m:cn_winter"
 
-    def test_python_module_plot_type(self):
-        """诊断复杂图形保留 Python 逃生舱（设计文档 D6）。"""
-        definition = get_plot_definition("cn.shr.default")
-        assert isinstance(definition, types.ModuleType)
-        for attr in ("PlotMetadata", "load_data", "plot"):
-            assert hasattr(definition, attr), attr
+    @pytest.mark.parametrize("name", ("div_wind", "pte_wind", "qv_div", "shr", "t_dew_t"))
+    def test_former_python_product_selects_v3(self, name):
+        definition = get_plot_definition(f"cn.{name}.default")
+        assert isinstance(definition, WorkflowProduct)
+        assert definition.recipe.recipe.metadata.name == f"cn.{name}.default"
+
+    def test_pte_legacy_level_pair_maps_to_explicit_v3_parameters(self):
+        product = get_plot_definition("cn.pte_wind.default")
+        context = workflow_context(
+            TimeConfig(pd.Timestamp("2024-07-01"), pd.Timedelta("24h")),
+            PlotConfig("cn.pte_wind.default", plot_params={"wind_level": 850, "pte_levels": (500, 700)}),
+        )
+        plan = product.compile(context)
+        assert plan.content.charts[0].titles[0].text.startswith("PTE 500.0-700.0hPa")
+        assert plan.read_count == 4
 
     def test_external_recipe_path(self, tmp_path):
         recipe_path = tmp_path / "recipes" / "t2m_custom.yaml"
@@ -122,9 +129,10 @@ class TestCheckPlotAvailable:
         assert check_plot_available(definition, self._time_config(1), plot_config) is False
         assert check_plot_available(definition, self._time_config(3), plot_config) is True
 
-    def test_module_without_check_available(self):
+    def test_former_python_product_available_with_required_parameters(self):
         definition = get_plot_definition("cn.shr.default")
-        assert check_plot_available(definition, self._time_config(0), PlotConfig("cn.shr.default")) is True
+        assert check_plot_available(definition, self._time_config(0), PlotConfig(
+            "cn.shr.default", plot_params={"first_level": 1000})) is True
 
 
 #: 与 cedar_graph.recipes.cn.t2m 等价的简化外部配方（季节 select 固定夏季）

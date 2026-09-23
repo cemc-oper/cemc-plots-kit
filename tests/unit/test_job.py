@@ -5,6 +5,7 @@ import os
 
 import pandas as pd
 import pytest
+from cedar_graph.testing import MockDataSource
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
 from cemc_plots_kit.job import (
@@ -122,8 +123,7 @@ class TestRunJob:
         assert output_file.exists()
 
     def test_run_job_python_module(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
-        """Python 逃生舱模块（cn.shr.default）同样经统一定义接口出图；
-        模块自定义参数（first_level）经 plot_params 传递。"""
+        """The former Python shear product uses the v3 job path and its level parameter."""
         job_config = _make_job_config(
             tmp_path, "cn.shr.default", start_time, forecast_time, system_name,
             plot_params={"first_level": 1000},
@@ -134,6 +134,24 @@ class TestRunJob:
         output_file = output_file_list[0]
         assert output_file == Path(tmp_path, "output", "cn_shr_default_first_level_1000_2024070100_024.png")
         assert output_file.exists()
+        assert len(mock_data_source.workflow_requests) == 1
+
+    @pytest.mark.parametrize("name,params,reads", (
+        ("div_wind", {"div_level": 850, "wind_level": 850}, 3),
+        ("pte_wind", {"wind_level": 850, "pte_first_level": 500, "pte_second_level": 850}, 4),
+        ("qv_div", {"level": 850}, 1),
+        ("shr", {"first_level": 3000}, 1),
+        ("t_dew_t", {"level": 850}, 2),
+    ))
+    def test_former_python_products_save_v3_output(
+            self, tmp_path, start_time, forecast_time, system_name, name, params, reads):
+        source = MockDataSource(resolution=2)
+        config = _make_job_config(tmp_path, f"cn.{name}.default", start_time, forecast_time,
+                                  system_name, plot_params=params)
+        outputs = run_job(config, data_source=source)
+        assert len(outputs) == 1
+        assert outputs[0].exists() and outputs[0].stat().st_size > 0
+        assert len(source.workflow_requests) == reads
 
     def test_run_job_external_recipe(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
         recipe_path = tmp_path / "t2m_custom.yaml"

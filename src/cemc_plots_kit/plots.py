@@ -89,6 +89,12 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
 
 def workflow_context(time_config: TimeConfig, plot_config: PlotConfig) -> CompileContext:
     params = dict(plot_config.plot_params)
+    if plot_config.plot_name == "cn.pte_wind.default" and "pte_levels" in params:
+        levels = params.pop("pte_levels")
+        if not isinstance(levels, (list, tuple)) or len(levels) != 2:
+            raise ValueError("pte_levels must contain two pressure levels")
+        params.setdefault("pte_first_level", levels[0])
+        params.setdefault("pte_second_level", levels[1])
     if plot_config.plot_name == "cn.t2m" and "style_variant" not in params:
         params["style_variant"] = "cn_summer" if 5 <= time_config.start_time.month <= 9 else "cn_winter"
     return CompileContext(start_time=time_config.start_time, forecast_time=time_config.forecast_time,
