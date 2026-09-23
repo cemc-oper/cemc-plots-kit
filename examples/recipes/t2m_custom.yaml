@@ -1,18 +1,41 @@
-# 外部配方示例：2 米温度（固定夏季色标）。
-# 在内置 cn.t2m 配方（cedar_graph/recipes/cn/t2m.yaml）基础上修改：
-# 去掉季节 select，固定 t2m:cn_summer 样式，并自定义标题。
-name: "custom 2m Temperature (C)"
-domain: { default: east_asia, area: cn_area }
-
-data:
-  t2m:
-    field: t2m
-    transforms:
-      - { op: style_units }
-
-layers:
-  - field: t2m
-    style: t2m:cn_summer
-
-title: { graph_name: "custom 2m Temperature (C)", area_prefix: true }
-colorbar: { layer: 0 }
+api_version: cedarkit.plots/v3
+kind: PlotRecipe
+metadata:
+  name: custom.t2m
+  title: Custom 2m Temperature (C)
+spec:
+  params:
+    style_variant:
+      type: enum
+      default: cn_summer
+      values:
+      - cn_summer
+      - cn_winter
+  data:
+    temperature:
+      field:
+        parameter: cedarkit.t2m
+      units: degC
+      temperature_kind: absolute
+      source_units: K
+  content:
+    charts:
+    - id: main
+      plots:
+      - id: temperature
+        method: contourf
+        field: temperature
+        style: cemc.t2m:{params.style_variant}
+        targets: all
+        data_crs: plate_carree
+      titles:
+      - id: heading
+        text: 2m Temperature (°C)
+    colorbars:
+    - id: temperature
+      plots:
+      - chart: main
+        plot: temperature
+      label: °C
+  display:
+    template: east_asia

@@ -1,18 +1,16 @@
 from pathlib import Path
 from dataclasses import asdict
-import inspect
 import os
 from uuid import uuid4
 
 import pandas as pd
 
 from cedarkit.plots.chart import Panel
-from cedar_graph.data import DataLoader, DataSource, RekiProvider
+from cedar_graph.data import RekiProvider
 
 from cemc_plots_kit.config import JobConfig, ExprConfig
 from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
                                   get_plot_definition, get_plot_label, workflow_context)
-from cemc_plots_kit.source import ExprLocalDataSource
 from cemc_plots_kit.logger import get_logger
 
 
@@ -104,12 +102,7 @@ def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
 
 
 def run_plot(plot_definition, job_config: JobConfig, *, data_source=None) -> Panel:
-    """
-    Run a resolved plot definition for one job: build the experiment data
-    source, load fields through the definition's ``load_data`` and draw
-    with its ``plot``. Works uniformly for engine recipes and Python
-    plot modules; recipe parameters come from ``plot_config.plot_params``.
-    """
+    """Run one selected v3 product with a caller or job-owned provider."""
     expr_config = job_config.expr_config
     time_config = job_config.time_config
     plot_config = job_config.plot_config
@@ -127,53 +120,19 @@ def run_plot(plot_definition, job_config: JobConfig, *, data_source=None) -> Pan
             raise TypeError("workflow product requires a field request provider")
         return plot_definition.run(provider, workflow_context(time_config, plot_config))
 
-    metadata_kwargs = dict(
-        start_time=time_config.start_time,
-        forecast_time=time_config.forecast_time,
-        system_name=expr_config.system_name,
-        area_range=expr_config.area,
-        **plot_config.plot_params,
-    )
-
-    metadata_class = plot_definition.PlotMetadata
-    metadata_fields = set(inspect.signature(metadata_class).parameters)
-    metadata = metadata_class(**{
-        key: value for key, value in metadata_kwargs.items() if key in metadata_fields
-    })
-
-    job_logger.info("loading data...")
-    data_source = data_source if data_source is not None else create_data_source(expr_config=expr_config)
-    data_loader = (
-        DataLoader(provider=data_source)
-        if isinstance(data_source, RekiProvider)
-        else DataLoader(data_source=data_source)
-    )
-
-    load_data_params = set(inspect.signature(plot_definition.load_data).parameters)
-    load_data_kwargs = {
-        key: value for key, value in metadata_kwargs.items() if key in load_data_params
-    }
-    plot_data = plot_definition.load_data(data_loader=data_loader, **load_data_kwargs)
-    job_logger.info("loading data...done")
-
-    job_logger.info("plotting...")
-    panel = plot_definition.plot(plot_data=plot_data, plot_metadata=metadata)
-    job_logger.info("plotting...done")
-
-    del plot_data
-    return panel
+    raise TypeError("plot definition must be a v3 product")
 
 
-def create_data_source(expr_config: ExprConfig) -> DataSource:
+def create_data_source(expr_config: ExprConfig) -> RekiProvider:
     """
     Create the experiment local data source.
 
     Kept as a separate function so tests can substitute a mock data source.
     """
-    if expr_config.source_spec is not None:
-        return RekiProvider(expr_config.source_spec,
-                            region=asdict(expr_config.area) if expr_config.area is not None else None)
-    return ExprLocalDataSource(expr_config=expr_config)
+    if expr_config.source_spec is None:
+        raise ValueError("a reki SourceSpec is required for v3 products")
+    return RekiProvider(expr_config.source_spec,
+                        region=asdict(expr_config.area) if expr_config.area is not None else None)
 
 
 def create_work_dir(job_config: JobConfig) -> Path:

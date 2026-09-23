@@ -112,7 +112,7 @@ class TestRunJob:
         )
         before = os.getcwd()
         with pytest.raises(RuntimeError, match="plot failed"):
-            run_job(job_config=job_config)
+            run_job(job_config=job_config, data_source=object())
         assert os.getcwd() == before
 
     def test_run_job_never_changes_working_directory(

@@ -1,18 +1,12 @@
 """
 plot_type → 图形定义解析。
 
-cemc-plots-kit 不携带逐图代码：``plot_type`` 直接映射 cedar-graph 的
-配方（YAML）或 Python 图形模块（诊断复杂图形的逃生舱）；键为
-``.yaml``/``.yml`` 路径时按外部配方文件加载（不发版即可加图）。
-
-图形定义对象提供统一接口：``PlotMetadata`` / ``load_data`` / ``plot``，
-可选 ``check_available``（配方由绘图引擎提供默认实现，Python 模块可
-自定义；未提供时视为任意时次组合可用）。
+``plot_type`` 选择 cedar-graph 的 v3 产品，或加载外部 v3 YAML recipe。
+静态计划与动态执行使用同一个产品定义。
 """
 from pathlib import Path
 from typing import Optional, Union
 
-from cedar_graph.quickplot import BASE_MODULE_NAME, BASE_RECIPE_NAME
 from cedar_graph.recipes.ensemble_product import EnsembleRequest, EnsembleT2MProduct, select_ensemble_product
 from cedar_graph.recipes.workflow_product import WorkflowProduct, load_workflow_product, select_workflow_product
 from cedarkit.plots.workflow.plan import CompileContext, RecipeCompileError
@@ -30,7 +24,7 @@ def is_recipe_path(plot_name: str) -> bool:
 
 def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = None):
     """
-    按 plot_type 解析 v3 产品定义；未迁移的旧 Python 模块仍由兼容入口处理。
+    按 plot_type 解析 v3 产品定义。
 
     Parameters
     ----------
@@ -43,8 +37,7 @@ def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = N
 
     Returns
     -------
-    图形定义对象（``PlotMetadata`` / ``load_data`` / ``plot`` /
-    可选 ``check_available``）。
+    v3 workflow 或集合产品对象。
     """
     selected = select_ensemble_product(plot_name) or select_workflow_product(plot_name)
     if selected is not None:
@@ -56,24 +49,14 @@ def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = N
             recipe_path = Path(base_dir if base_dir is not None else ".") / recipe_path
         return load_workflow_product(recipe_path)
 
-    from cedar_graph.recipes.engine import get_recipe_engine
-    from cedarkit.plots.engine.loader import get_plot_definition as load_definition
-
-    engine = get_recipe_engine()
-    return load_definition(
-        plot_type=plot_name,
-        base_module_name=BASE_MODULE_NAME,
-        recipe_base_module=BASE_RECIPE_NAME,
-        engine=engine,
-    )
+    raise KeyError(f"unknown v3 product {plot_name!r}")
 
 
 def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: PlotConfig) -> bool:
     """
     调用图形定义的 ``check_available`` 过滤无效时次组合。
 
-    配方由引擎默认实现（``time_diff`` 要求 ``forecast_time >= interval``）；
-    定义未提供 ``check_available`` 时视为可用。
+    Workflow 编译时检查时效约束；集合参数静态验证。
     """
     if isinstance(plot_definition, EnsembleT2MProduct):
         EnsembleRequest.from_params(plot_config.plot_params)
@@ -86,10 +69,7 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
                 return False
             raise
         return True
-    check = getattr(plot_definition, "check_available", None)
-    if check is None:
-        return True
-    return check(time_config=time_config, plot_config=plot_config)
+    raise TypeError("plot definition must be a v3 product")
 
 
 def workflow_context(time_config: TimeConfig, plot_config: PlotConfig) -> CompileContext:

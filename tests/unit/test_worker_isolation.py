@@ -22,7 +22,7 @@ from cedar_graph.data import RekiProvider
 from cedar_graph.recipes.ensemble_product import EnsembleRequest, EnsembleT2MProduct
 from cedar_graph.recipes.workflow_product import WorkflowProduct, select_workflow_product
 from cedar_graph.testing import MockDataSource
-from cedarkit.plots.plan.provider import BoundFieldRequest
+from cedarkit.plots.workflow.plan.model import BoundFieldRequest
 from cedarkit.plots.style.registry import get_default_registry
 from cedarkit.plots.types import AreaRange
 

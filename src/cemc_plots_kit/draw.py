@@ -5,10 +5,10 @@ import pandas as pd
 
 from cedarkit.plots.types import AreaRange
 from cemc_plots_kit.config import (
-    JobConfig, ExprConfig, RuntimeConfig, TimeConfig, PlotConfig,
-    get_default_data_file_name_template, get_default_data_dir
+    JobConfig, RuntimeConfig, TimeConfig, PlotConfig,
 )
 from cemc_plots_kit.job import run_job
+from cemc_plots_kit.task import bind_task_source
 
 
 def draw_plot(
@@ -46,28 +46,17 @@ def draw_plot(
     list[Path]
         path list of generated figures
     """
-    if data_file_name_template is None:
-        data_file_name_template = get_default_data_file_name_template(system_name=system_name)
-    if data_file_name_template is None:
-        raise ValueError(f"Can't get default data_file_name_template with system_name {system_name}."
-                         f"Please set data_file_name_template parameter.")
-
-    if data_dir is None:
-        data_dir = get_default_data_dir(system_name=system_name)
-    if data_dir is None:
-        raise ValueError(f"Can't get default data_dir with system_name {system_name}."
-                         f"Please set data_dir parameter.")
-
     if work_dir is None:
         work_dir = "."
 
+    source_config = {}
+    if data_dir is not None:
+        source_config["data_dir"] = data_dir
+    if data_file_name_template is not None:
+        source_config["data_file_name_template"] = data_file_name_template
+
     job_config = JobConfig(
-        expr_config=ExprConfig(
-            system_name=system_name,
-            area=area,
-            data_dir=data_dir,
-            data_file_name_template=data_file_name_template,
-        ),
+        expr_config=bind_task_source(system_name, source_config, Path.cwd(), area),
         runtime_config=RuntimeConfig(
             work_dir=work_dir,
             output_dir=work_dir,
