@@ -96,11 +96,13 @@ class TestGetPlotDefinition:
 
         # 相对路径基于 base_dir 解析
         definition = get_plot_definition("recipes/t2m_custom.yaml", base_dir=tmp_path)
-        assert definition.recipe.name == "custom 2m temperature"
+        assert isinstance(definition, WorkflowProduct)
+        assert definition.recipe.recipe.metadata.title == "custom 2m temperature"
 
         # 绝对路径直接加载
         definition = get_plot_definition(str(recipe_path))
-        assert definition.recipe.name == "custom 2m temperature"
+        assert isinstance(definition, WorkflowProduct)
+        assert definition.recipe.recipe.metadata.title == "custom 2m temperature"
 
     def test_unknown_plot_type_raises(self):
         with pytest.raises(Exception):
@@ -140,21 +142,26 @@ class TestCheckPlotAvailable:
             "cn.shr.default", plot_params={"first_level": 1000})) is True
 
 
-#: 与 cedar_graph.recipes.cn.t2m 等价的简化外部配方（季节 select 固定夏季）
+#: External v3 recipe using the same product runtime as packaged recipes.
 EXTERNAL_RECIPE = """
-name: "custom 2m temperature"
-domain: { default: east_asia, area: cn_area }
-
-data:
-  t2m:
-    field: t2m
-    transforms:
-      - { op: style_units }
-
-layers:
-  - field: t2m
-    style: t2m:cn_summer
-
-title: { graph_name: "2m Temperature (C)" }
-colorbar: { layer: 0 }
+api_version: cedarkit.plots/v3
+kind: PlotRecipe
+metadata: {name: custom.t2m, title: "custom 2m temperature"}
+spec:
+  data:
+    temperature:
+      field: {parameter: cedarkit.t2m}
+      source_units: K
+      units: degC
+      temperature_kind: absolute
+  content:
+    charts:
+      - id: main
+        plots:
+          - {id: temperature, method: contourf, field: temperature, style: "cemc.t2m:cn_summer", targets: all, data_crs: plate_carree}
+        titles:
+          - {id: heading, text: "2m Temperature (C)"}
+    colorbars:
+      - {id: temperature, plots: [{chart: main, plot: temperature}], label: "°C"}
+  display: {template: east_asia}
 """

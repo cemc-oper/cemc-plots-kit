@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 from cemc_plots_kit.__main__ import app
 from cemc_plots_kit.task_plan import build_task_plan, explain_task_plan
 from cemc_plots_kit.task_spec import load_task_spec
+from test_plots import EXTERNAL_RECIPE
 
 
 TASK = """\
@@ -46,6 +47,35 @@ def test_former_python_product_has_static_v3_plan(tmp_path, monkeypatch):
     assert all(job["executable"] and job["plot_plan"]["plan_schema_version"] == 3 for job in jobs)
     assert all(job["plot_plan"]["recipe"]["identity"] == "cn.shr.default" for job in jobs)
     assert len(plan.to_dict()["requests"]) == 2
+
+
+def test_ensemble_plan_uses_member_product_definitions(tmp_path, monkeypatch):
+    task_file = tmp_path / "task.yaml"
+    task_file.write_text(TASK.replace(
+        "plots: {cn.t2m: true, cn.h_500_psl: true, cn.rain_24h: true}",
+        "plots: {cn.ens_t2m: {member_ids: [m01, m02], control_id: ctl, include_control_in_max: true}}"),
+        encoding="utf-8")
+    monkeypatch.setattr(reki, "from_source", lambda *args, **kwargs: pytest.fail("plan opened a source"))
+    plan = build_task_plan(load_task_spec(task_file), task_file=task_file).to_dict()
+    assert all(job["executable"] for job in plan["jobs"])
+    assert all(set(job["plot_plan"]["member_plans"]) == {"ctl", "m01", "m02"}
+               for job in plan["jobs"])
+    assert all(job["plot_plan"]["max_input_ids"] == ["m01", "m02", "ctl"]
+               for job in plan["jobs"])
+    assert {item["request"]["query"]["member"] for item in plan["requests"]} == {"ctl", "m01", "m02"}
+
+
+def test_external_v3_recipe_uses_same_plan_as_execution(tmp_path):
+    recipe = tmp_path / "custom.yaml"
+    recipe.write_text(EXTERNAL_RECIPE, encoding="utf-8")
+    task_file = tmp_path / "task.yaml"
+    task_file.write_text(TASK.replace(
+        "plots: {cn.t2m: true, cn.h_500_psl: true, cn.rain_24h: true}",
+        "plots: {custom.yaml: true}"), encoding="utf-8")
+    plan = build_task_plan(load_task_spec(task_file), task_file=task_file).to_dict()
+    assert all(job["executable"] and job["plot_plan"]["recipe"]["identity"] == "custom.t2m"
+               for job in plan["jobs"])
+    assert len(plan["requests"]) == 2
 
 
 def test_build_task_plan_is_static_and_deduplicates_requests(tmp_path, monkeypatch):

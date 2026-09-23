@@ -10,12 +10,9 @@ from typing import Any
 
 import pandas as pd
 
-from cedarkit.plots.engine.loader import find_recipe_file
-from cedarkit.plots.plan import CompileContext, compile_recipe
-from cedarkit.plots.recipe import load_recipe
-
 from cemc_plots_kit.config import PlotConfig, TimeConfig
-from cemc_plots_kit.plots import WorkflowProduct, check_plot_available, get_plot_definition, workflow_context
+from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
+                                  check_plot_available, get_plot_definition, workflow_context)
 from cemc_plots_kit.task import parse_plots_config
 from cemc_plots_kit.task_spec import PlotTaskV2, resolve_task_dataset
 
@@ -55,13 +52,6 @@ def _request_identity(request: dict[str, Any]) -> str:
     return _canonical(request)
 
 
-def _recipe_path(plot_name: str, base_dir: Path) -> Path | None:
-    if plot_name.lower().endswith((".yaml", ".yml")):
-        path = Path(plot_name)
-        return path if path.is_absolute() else base_dir / path
-    return find_recipe_file(plot_name, "cedar_graph.recipes")
-
-
 def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
     """Compile recipes and requests without constructing a provider or decoding data."""
     task_file = Path(task_file).resolve()
@@ -93,32 +83,40 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
                 jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "skip_reason": "plot_unavailable_for_time", "issues": []})
                 continue
             try:
-                if isinstance(definition, WorkflowProduct):
+                if isinstance(definition, EnsembleT2MProduct):
+                    request = EnsembleRequest.from_params(params)
+                    member_plans = definition.compile_members(
+                        start_time=start_time, forecast_time=forecast_time, request=request)
+                    plot_plan = {"product": definition.name, "member_plans": {
+                        member_id: member_plan.to_dict() for member_id, member_plan in member_plans.items()},
+                        "max_input_ids": list(request.member_ids) + (
+                            [request.control_id] if request.include_control_in_max else []),
+                        "missing_policy": request.missing_policy}
+                    plans_to_group = [(member_id, member_plan.to_dict())
+                                      for member_id, member_plan in member_plans.items()]
+                elif isinstance(definition, WorkflowProduct):
                     plot_plan = definition.compile(workflow_context(
                         TimeConfig(start_time=start_time, forecast_time=forecast_time),
                         PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir))).to_dict()
+                    plans_to_group = [(None, plot_plan)]
                 else:
-                    recipe_path = _recipe_path(plot_name, base_dir)
-                    if recipe_path is None:
-                        issues.append({"code": "python_plot_fallback", "job_id": job_id, "message": "static PlotPlan is unavailable for a Python plot module"})
-                        jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "issues": ["python_plot_fallback"]})
-                        continue
-                    plot_plan = compile_recipe(
-                        load_recipe(recipe_path),
-                        CompileContext(start_time=start_time, forecast_time=forecast_time, params=params),
-                    ).to_dict()
+                    raise TypeError(f"plot {plot_name!r} has no v3 product plan")
             except Exception as exc:
                 issues.append({"code": "plan_compile_error", "job_id": job_id, "message": str(exc)})
                 jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": False, "issues": ["plan_compile_error"]})
                 continue
             jobs.append({"id": job_id, "plot": plot_name, "params": params, "forecast_time": str(forecast_time), "executable": True, "issues": [], "plot_plan": plot_plan, "physical_file": {"status": "resolve_on_execute"}})
-            for node in plot_plan["nodes"]:
-                request = node.get("request")
-                if request is None:
-                    continue
-                key = _request_identity(request)
-                entry = grouped_requests.setdefault(key, {"request": request, "consumers": []})
-                entry["consumers"].append({"job_id": job_id, "node_id": node["id"], "bindings": node["bindings"]})
+            for member_id, member_plan in plans_to_group:
+                for node in member_plan["nodes"]:
+                    request = node.get("request")
+                    if request is None:
+                        continue
+                    key = _request_identity(request)
+                    entry = grouped_requests.setdefault(key, {"request": request, "consumers": []})
+                    consumer = {"job_id": job_id, "node_id": node["id"], "bindings": node["bindings"]}
+                    if member_id is not None:
+                        consumer["member_id"] = member_id
+                    entry["consumers"].append(consumer)
 
     normalized_input = task.model_dump(mode="json")
     document = {

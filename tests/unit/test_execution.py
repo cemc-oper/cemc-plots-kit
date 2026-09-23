@@ -4,6 +4,7 @@ import pytest
 import reki
 
 from cemc_plots_kit.execution import run_task_spec
+from cemc_plots_kit.manifest import write_manifest
 from cemc_plots_kit.task_spec import load_task_spec
 
 
@@ -17,6 +18,17 @@ time: {start_time: 2026071600, forecast_time: 24h, forecast_interval: 24h}
 runtime: {work_dir: work, output_dir: output, missing: skip}
 plots: {cn.t2m: true}
 """
+
+
+def test_manifest_replace_failure_cleans_temp_and_preserves_previous(tmp_path, monkeypatch):
+    path = tmp_path / "task-manifest.json"
+    path.write_text("previous", encoding="utf-8")
+    monkeypatch.setattr("cemc_plots_kit.manifest.os.replace",
+                        lambda *args: (_ for _ in ()).throw(OSError("replace failed")))
+    with pytest.raises(OSError, match="replace failed"):
+        write_manifest(path, {"status": "new"})
+    assert path.read_text(encoding="utf-8") == "previous"
+    assert list(tmp_path.glob(".task-manifest.json.*.tmp")) == []
 
 
 def test_serial_run_writes_atomic_manifest(tmp_path, monkeypatch):

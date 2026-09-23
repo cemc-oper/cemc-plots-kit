@@ -73,10 +73,11 @@ class PlotConfig:
     Plot parameters, defining customized parameters for plotting, one object for each type of plot.
 
     plot_name
-        Plot type (cedar-graph recipe/module, e.g. ``cn.t2m``, ``cn.shr.default``)
-        or an external recipe file path (``.yaml``/``.yml``).
+        v3 product ID (e.g. ``cn.t2m``, ``cn.shr.default``, ``cn.ens_t2m``)
+        or an external v3 recipe file path (``.yaml``/``.yml``).
     plot_params
-        Recipe/module parameter values, e.g. ``{"interval": "3h"}`` for ``cn.rain_wind_10m``.
+        Product parameter values, e.g. ``{"interval": "3h"}`` for ``cn.rain_wind_10m``
+        or ``{"member_ids": ["m01"]}`` for ``cn.ens_t2m``.
     base_dir
         Base directory for resolving relative external recipe paths,
         usually the task file directory. ``None`` resolves against the

@@ -1,6 +1,7 @@
 from pathlib import Path
 import inspect
 import os
+from uuid import uuid4
 
 import pandas as pd
 
@@ -73,13 +74,17 @@ def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
     )
 
     temporary_path = None
+    owned_provider = None
     try:
         job_logger.info(f"running plot job...")
-        panel = run_plot(plot_definition=plot_definition, job_config=job_config, data_source=data_source)
+        if data_source is None and isinstance(plot_definition, (WorkflowProduct, EnsembleT2MProduct)):
+            owned_provider = create_data_source(expr_config=job_config.expr_config)
+        panel = run_plot(plot_definition=plot_definition, job_config=job_config,
+                         data_source=owned_provider if owned_provider is not None else data_source)
 
         job_logger.info(f"saving output image... {output_image_file_path}")
         temporary_path = output_image_file_path.with_name(
-            f".{output_image_file_path.stem}.tmp{output_image_file_path.suffix}"
+            f".{output_image_file_path.stem}.{uuid4().hex}.tmp{output_image_file_path.suffix}"
         )
         panel.save(temporary_path)
         os.replace(temporary_path, output_image_file_path)
@@ -91,6 +96,8 @@ def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
         owned_panel = locals().get("panel")
         if owned_panel is not None:
             owned_panel.close()
+        if owned_provider is not None and hasattr(owned_provider, "close"):
+            owned_provider.close()
 
     return [output_image_file_path]
 

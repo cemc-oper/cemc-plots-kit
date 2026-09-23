@@ -133,6 +133,7 @@
           }
         ]
       },
+      "description": "v3 product ID or external v3 YAML path mapped to parameters; cn.ens_t2m requires member_ids",
       "minProperties": 1,
       "title": "Plots",
       "type": "object"
@@ -157,4 +158,3 @@
   "title": "PlotTaskV2",
   "type": "object"
 }
-

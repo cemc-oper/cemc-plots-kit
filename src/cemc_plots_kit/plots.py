@@ -14,7 +14,7 @@ from typing import Optional, Union
 
 from cedar_graph.quickplot import BASE_MODULE_NAME, BASE_RECIPE_NAME
 from cedar_graph.recipes.ensemble_product import EnsembleRequest, EnsembleT2MProduct, select_ensemble_product
-from cedar_graph.recipes.workflow_product import WorkflowProduct, select_workflow_product
+from cedar_graph.recipes.workflow_product import WorkflowProduct, load_workflow_product, select_workflow_product
 from cedarkit.plots.workflow.plan import CompileContext, RecipeCompileError
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
@@ -30,13 +30,13 @@ def is_recipe_path(plot_name: str) -> bool:
 
 def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = None):
     """
-    按 plot_type 解析图形定义（配方适配器或 Python 模块）。
+    按 plot_type 解析 v3 产品定义；未迁移的旧 Python 模块仍由兼容入口处理。
 
     Parameters
     ----------
     plot_name
-        cedar-graph 图形类型（配方如 ``cn.t2m``，Python 模块如
-        ``cn.shr.default``），或外部配方文件路径（相对路径基于
+        cedar-graph 产品（如 ``cn.t2m``、``cn.shr.default``、``cn.ens_t2m``），
+        或外部 v3 配方文件路径（相对路径基于
         ``base_dir`` 解析）。
     base_dir
         相对配方路径的基准目录，通常为 task 文件所在目录。
@@ -50,15 +50,16 @@ def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = N
     if selected is not None:
         return selected
 
-    from cedar_graph.recipes.engine import get_recipe_engine
-    from cedarkit.plots.engine.loader import get_plot_definition as load_definition
-
-    engine = get_recipe_engine()
     if is_recipe_path(plot_name):
         recipe_path = Path(plot_name)
         if not recipe_path.is_absolute():
             recipe_path = Path(base_dir if base_dir is not None else ".") / recipe_path
-        return engine.build_module(engine.load_recipe(recipe_path))
+        return load_workflow_product(recipe_path)
+
+    from cedar_graph.recipes.engine import get_recipe_engine
+    from cedarkit.plots.engine.loader import get_plot_definition as load_definition
+
+    engine = get_recipe_engine()
     return load_definition(
         plot_type=plot_name,
         base_module_name=BASE_MODULE_NAME,

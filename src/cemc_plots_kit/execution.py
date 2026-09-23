@@ -40,7 +40,7 @@ class ExecutionContext:
 
     def close(self):
         if self.provider is not None:
-            self.provider._field_cache.clear()
+            self.provider.close()
 
 
 def _job_config(job: dict[str, Any], task: PlotTaskV2, plan: TaskPlan, source) -> JobConfig:
@@ -73,7 +73,7 @@ def _run_worker_group(group: list[tuple[int, str, JobConfig]], source_spec, shar
         return _run_group(group, provider, storage_base)
     finally:
         if provider is not None:
-            provider._field_cache.clear()
+            provider.close()
 
 
 def _worker_groups(jobs: list[tuple[int, dict[str, Any], JobConfig]]) -> list[list[tuple[int, str, JobConfig]]]:

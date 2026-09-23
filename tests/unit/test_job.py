@@ -5,6 +5,7 @@ import os
 
 import pandas as pd
 import pytest
+import matplotlib.pyplot as plt
 from cedar_graph.testing import MockDataSource
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
@@ -62,6 +63,32 @@ class TestOutputNaming:
 
 
 class TestRunJob:
+    def test_failed_save_preserves_existing_output_and_caller_figure(
+            self, monkeypatch, tmp_path, start_time, forecast_time, system_name):
+        config = _make_job_config(tmp_path, "cn.t2m", start_time, forecast_time, system_name)
+        output = tmp_path / "output" / get_output_image_file_name(config)
+        output.parent.mkdir()
+        output.write_bytes(b"previous complete image")
+        figure = plt.figure()
+        closed = []
+
+        class FailingPanel:
+            def save(self, path):
+                Path(path).write_bytes(b"incomplete")
+                raise RuntimeError("save failed")
+
+            def close(self):
+                closed.append(True)
+
+        monkeypatch.setattr("cemc_plots_kit.job.run_plot", lambda **kwargs: FailingPanel())
+        with pytest.raises(RuntimeError, match="save failed"):
+            run_job(config, data_source=object())
+        assert output.read_bytes() == b"previous complete image"
+        assert list(output.parent.glob(".*.tmp.png")) == []
+        assert closed == [True]
+        assert plt.fignum_exists(figure.number)
+        plt.close(figure)
+
     def test_run_job_restores_working_directory(
             self, mock_data_source, tmp_path, start_time, forecast_time, system_name
     ):
@@ -177,20 +204,4 @@ class TestRunJob:
         assert output_file.exists()
 
 
-EXTERNAL_RECIPE = """
-name: "custom 2m temperature"
-domain: { default: east_asia, area: cn_area }
-
-data:
-  t2m:
-    field: t2m
-    transforms:
-      - { op: style_units }
-
-layers:
-  - field: t2m
-    style: t2m:cn_summer
-
-title: { graph_name: "2m Temperature (C)" }
-colorbar: { layer: 0 }
-"""
+from test_plots import EXTERNAL_RECIPE

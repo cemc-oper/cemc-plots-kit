@@ -29,4 +29,4 @@ datasets:
       name: local
       args: [cma_geps/grib2/orig]
       kwargs: {data_class: cmadaas}
-    metadata: {provider: cmadaas-mounted-grib, member_required: true}
+    metadata: {provider: cmadaas-mounted-grib, member_required: true, example_product: cn.ens_t2m}

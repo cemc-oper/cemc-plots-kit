@@ -86,7 +86,10 @@ class PlotTaskV2(StrictModel):
     source: SourceConfig
     time: TimeConfigV2
     runtime: RuntimeConfigV2 = Field(default_factory=RuntimeConfigV2)
-    plots: dict[str, bool | dict[str, Any] | list[dict[str, Any]]] = Field(min_length=1)
+    plots: dict[str, bool | dict[str, Any] | list[dict[str, Any]]] = Field(
+        min_length=1,
+        description="v3 product ID or external v3 YAML path mapped to parameters; cn.ens_t2m requires member_ids",
+    )
     area: dict[str, float] | None = None
 
 

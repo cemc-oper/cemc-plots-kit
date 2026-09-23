@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from cemc_plots_kit.task import bind_task_source, parse_plots_config, run_task
+from test_plots import EXTERNAL_RECIPE
 
 
 class TestParsePlotsConfig:
@@ -126,23 +127,3 @@ class TestTaskSourceBinding:
     def test_unknown_partial_source_is_diagnostic(self, tmp_path):
         with pytest.raises(ValueError, match="unknown dataset"):
             bind_task_source("unknown", {"data_dir": "/fixture"}, tmp_path)
-
-
-#: 简化外部配方（与 test_plots.py 同款）
-EXTERNAL_RECIPE = """
-name: "custom 2m temperature"
-domain: { default: east_asia, area: cn_area }
-
-data:
-  t2m:
-    field: t2m
-    transforms:
-      - { op: style_units }
-
-layers:
-  - field: t2m
-    style: t2m:cn_summer
-
-title: { graph_name: "2m Temperature (C)" }
-colorbar: { layer: 0 }
-"""
