@@ -14,7 +14,7 @@ from typing import Optional, Union
 
 from cedar_graph.quickplot import BASE_MODULE_NAME, BASE_RECIPE_NAME
 from cedar_graph.recipes.workflow_product import WorkflowProduct, select_workflow_product
-from cedarkit.plots.workflow.plan import CompileContext
+from cedarkit.plots.workflow.plan import CompileContext, RecipeCompileError
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
 
@@ -74,7 +74,12 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
     定义未提供 ``check_available`` 时视为可用。
     """
     if isinstance(plot_definition, WorkflowProduct):
-        plot_definition.compile(workflow_context(time_config, plot_config))
+        try:
+            plot_definition.compile(workflow_context(time_config, plot_config))
+        except RecipeCompileError as exc:
+            if exc.code == "planner" and "time_diff interval" in str(exc):
+                return False
+            raise
         return True
     check = getattr(plot_definition, "check_available", None)
     if check is None:

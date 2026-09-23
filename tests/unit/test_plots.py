@@ -52,6 +52,15 @@ class TestGetPlotDefinition:
         assert definition.recipe.recipe.metadata.name == "cn.t2m"
         assert definition.recipe.recipe.api_version == "cedarkit.plots/v3"
 
+    @pytest.mark.parametrize("name", (
+        "bli_wind", "cape_wind", "cdbz", "cin_wind", "h_500_psl", "h_500_wind_850",
+        "kidx_wind", "prep_24h", "rain_24h", "rain_wind_10m", "rh2m", "t2m", "wind_10m",
+    ))
+    def test_all_cn_recipes_select_v3_product(self, name):
+        definition = get_plot_definition(f"cn.{name}")
+        assert isinstance(definition, WorkflowProduct)
+        assert definition.recipe.recipe.metadata.name == f"cn.{name}"
+
     def test_t2m_style_follows_start_month(self):
         product = get_plot_definition("cn.t2m")
         summer = product.compile(workflow_context(
