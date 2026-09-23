@@ -4,6 +4,7 @@ import pytest
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
 from cemc_plots_kit.plots import (
+    EnsembleT2MProduct,
     WorkflowProduct,
     check_plot_available,
     get_plot_definition,
@@ -38,6 +39,7 @@ class TestGetPlotLabel:
             get_plot_label("cn.kidx_wind", {"wind_level": 850, "area_name": "X"})
             == "cn_kidx_wind_area_name_X_wind_level_850"
         )
+        assert get_plot_label("cn.ens_t2m", {"member_ids": ["m01", "m02"]}) == "cn_ens_t2m_member_ids_m01-m02"
 
     def test_empty_params_no_suffix(self):
         assert get_plot_label("cn.t2m", {}) == "cn_t2m"
@@ -67,6 +69,9 @@ class TestGetPlotDefinition:
             TimeConfig(pd.Timestamp("2024-01-01"), pd.Timedelta("24h")), PlotConfig("cn.t2m")))
         assert summer.content.charts[0].plots[0].style == "cemc.t2m:cn_summer"
         assert winter.content.charts[0].plots[0].style == "cemc.t2m:cn_winter"
+
+    def test_ensemble_product_selection(self):
+        assert isinstance(get_plot_definition("cn.ens_t2m"), EnsembleT2MProduct)
 
     @pytest.mark.parametrize("name", ("div_wind", "pte_wind", "qv_div", "shr", "t_dew_t"))
     def test_former_python_product_selects_v3(self, name):

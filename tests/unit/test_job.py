@@ -153,6 +153,18 @@ class TestRunJob:
         assert outputs[0].exists() and outputs[0].stat().st_size > 0
         assert len(source.workflow_requests) == reads
 
+    def test_ensemble_job_creates_member_control_and_max_output(
+            self, tmp_path, start_time, forecast_time, system_name):
+        source = MockDataSource(resolution=5)
+        config = _make_job_config(tmp_path, "cn.ens_t2m", start_time, forecast_time,
+                                  system_name, plot_params={"member_ids": ["m01", "m02"],
+                                                            "control_id": "ctl"})
+        outputs = run_job(config, data_source=source)
+        assert len(outputs) == 1
+        assert outputs[0].exists() and outputs[0].stat().st_size > 0
+        assert "member_ids_m01-m02" in outputs[0].name
+        assert {request.key.query.member for request in source.workflow_requests} == {"ctl", "m01", "m02"}
+
     def test_run_job_external_recipe(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
         recipe_path = tmp_path / "t2m_custom.yaml"
         recipe_path.write_text(EXTERNAL_RECIPE, encoding="utf-8")

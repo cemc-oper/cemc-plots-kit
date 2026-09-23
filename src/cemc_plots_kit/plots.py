@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from cedar_graph.quickplot import BASE_MODULE_NAME, BASE_RECIPE_NAME
+from cedar_graph.recipes.ensemble_product import EnsembleRequest, EnsembleT2MProduct, select_ensemble_product
 from cedar_graph.recipes.workflow_product import WorkflowProduct, select_workflow_product
 from cedarkit.plots.workflow.plan import CompileContext, RecipeCompileError
 
@@ -45,7 +46,7 @@ def get_plot_definition(plot_name: str, base_dir: Optional[Union[str, Path]] = N
     图形定义对象（``PlotMetadata`` / ``load_data`` / ``plot`` /
     可选 ``check_available``）。
     """
-    selected = select_workflow_product(plot_name)
+    selected = select_ensemble_product(plot_name) or select_workflow_product(plot_name)
     if selected is not None:
         return selected
 
@@ -73,6 +74,9 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
     配方由引擎默认实现（``time_diff`` 要求 ``forecast_time >= interval``）；
     定义未提供 ``check_available`` 时视为可用。
     """
+    if isinstance(plot_definition, EnsembleT2MProduct):
+        EnsembleRequest.from_params(plot_config.plot_params)
+        return True
     if isinstance(plot_definition, WorkflowProduct):
         try:
             plot_definition.compile(workflow_context(time_config, plot_config))
@@ -116,6 +120,8 @@ def get_plot_label(plot_name: str, plot_params: Optional[dict] = None) -> str:
     else:
         label = plot_name.replace(".", "_")
     if plot_params:
-        suffix = "_".join(f"{key}_{value}" for key, value in sorted(plot_params.items()))
+        def label_value(value):
+            return "-".join(map(str, value)) if isinstance(value, (list, tuple)) else str(value)
+        suffix = "_".join(f"{key}_{label_value(value)}" for key, value in sorted(plot_params.items()))
         label = f"{label}_{suffix}"
     return label

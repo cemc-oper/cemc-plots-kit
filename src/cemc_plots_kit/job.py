@@ -8,7 +8,8 @@ from cedarkit.plots.chart import Panel
 from cedar_graph.data import DataLoader, DataSource, RekiProvider
 
 from cemc_plots_kit.config import JobConfig, ExprConfig
-from cemc_plots_kit.plots import WorkflowProduct, get_plot_definition, get_plot_label, workflow_context
+from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
+                                  get_plot_definition, get_plot_label, workflow_context)
 from cemc_plots_kit.source import ExprLocalDataSource
 from cemc_plots_kit.logger import get_logger
 
@@ -104,6 +105,13 @@ def run_plot(plot_definition, job_config: JobConfig, *, data_source=None) -> Pan
     expr_config = job_config.expr_config
     time_config = job_config.time_config
     plot_config = job_config.plot_config
+
+    if isinstance(plot_definition, EnsembleT2MProduct):
+        provider = data_source if data_source is not None else create_data_source(expr_config=expr_config)
+        prepared = plot_definition.prepare(provider, start_time=time_config.start_time,
+                                           forecast_time=time_config.forecast_time,
+                                           request=EnsembleRequest.from_params(plot_config.plot_params))
+        return prepared.render()
 
     if isinstance(plot_definition, WorkflowProduct):
         provider = data_source if data_source is not None else create_data_source(expr_config=expr_config)
