@@ -132,11 +132,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cartopy" },
+    { name = "cartopy", specifier = ">=0.23.0" },
     { name = "cedarkit-comp", editable = "../../repo/cedarkit-comp" },
     { name = "cedarkit-plots", editable = "../../repo/cedarkit-plots" },
     { name = "codecov", marker = "extra == 'cov'" },
-    { name = "importlib-metadata", marker = "python_full_version < '3.8'" },
     { name = "ipykernel", marker = "extra == 'docs'", specifier = ">=6.29" },
     { name = "linkify-it-py", marker = "extra == 'docs'", specifier = ">=2.0" },
     { name = "loguru" },
@@ -233,13 +232,11 @@ dependencies = [
     { name = "cedar-graph" },
     { name = "cedarkit-plots" },
     { name = "loguru" },
-    { name = "matplotlib" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "reki" },
     { name = "typer" },
-    { name = "xarray" },
 ]
 
 [package.optional-dependencies]
@@ -257,7 +254,6 @@ requires-dist = [
     { name = "cedarkit-plots", editable = "../../repo/cedarkit-plots" },
     { name = "codecov", marker = "extra == 'cov'" },
     { name = "loguru" },
-    { name = "matplotlib" },
     { name = "pandas" },
     { name = "pydantic", specifier = ">=2,<3" },
     { name = "pytest", marker = "extra == 'test'" },
@@ -265,7 +261,6 @@ requires-dist = [
     { name = "pyyaml" },
     { name = "reki", specifier = ">=2026.9.0" },
     { name = "typer" },
-    { name = "xarray" },
 ]
 provides-extras = ["test", "cov"]
 
