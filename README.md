@@ -5,8 +5,14 @@
 [cedar-graph](https://github.com/cemc-oper/cedar-graph) 提供，底层绘制由
 `cedarkit-plots` 完成。
 
-一个 `plot_type` 直接对应 cedar-graph 的 YAML 配方或 Python 绘图模块，
-无需为每个图种额外编写命令行包装代码。
+当前开发版变更见 [CHANGELOG.md](CHANGELOG.md)。
+
+任务中的图种 ID 选择 cedar-graph workflow 产品；外部 YAML 路径必须是
+`cedarkit.plots/v3` workflow recipe。产品编译、provider 请求和绘图都经过同一条
+新链，不再加载独立 Python `load_data`/`plot` 模块。
+
+注意两个版本字段描述不同对象：任务文件使用 `cemc.plots/v2`，其内部引用的产品
+配方使用 `cedarkit.plots/v3`。这两个版本号互不对应，也不能互换。
 
 ## 适用场景
 
@@ -39,7 +45,7 @@ CMADaaS 挂载目录。
 
 ## 快速开始：运行 CMADaaS 挂载目录任务
 
-项目提供了可部署的 v2 任务模板
+项目提供了可部署的 `cemc.plots/v2` 任务模板
 [`examples/task-v2-cmadaas-mount.yaml`](examples/task-v2-cmadaas-mount.yaml)。
 它使用内置的 CMADaaS 挂载目录数据集，并将机器相关的挂载点保留在任务文件中：
 
@@ -53,9 +59,9 @@ source:
     storage_base: /CMADAAS
 
 time:
-  start_time: 2026071600
+  start_time: 2026092200
   forecast_time: 24h
-  forecast_interval: 6h
+  forecast_interval: 24h
 
 runtime:
   work_dir: ./work
@@ -64,8 +70,6 @@ runtime:
 
 plots:
   cn.t2m: true
-  cn.h_500_psl: true
-  cn.rain_24h: true
 ```
 
 先执行不会读取数据或写入文件的检查命令：
@@ -86,6 +90,9 @@ cemc-plots run examples/task-v2-cmadaas-mount.yaml
 `validate`、`plan` 和 `explain` 是离线操作：不会创建数据 reader、读取或解码
 数据、请求 CMADaaS 服务、渲染图形或写入输出。`run` 会在 `output_dir` 中原子地
 写入图像与 `task-manifest.json`。
+
+字段含义、参数形式、manifest 状态以及 worker/provider 生命周期见
+[`docs/task-workflow.md`](docs/task-workflow.md)。
 
 CMADaaS 挂载目录属于本地文件数据源，而非 CMADaaS 在线服务；上述用法不需要
 CMADaaS 服务凭据。挂载目录布局需与 reki 中对应系统的 `cmadaas` 路径模板一致。
@@ -142,9 +149,8 @@ plots:
 | `cn.prep_24h` | 24 小时降水相态 |
 | `cn.kidx_wind`、`cn.bli_wind`、`cn.cape_wind`、`cn.cin_wind` | 对流指数与风场，需 `wind_level` 参数 |
 
-复杂诊断图也可使用 cedar-graph Python 模块，例如 `cn.shr.default` 和
-`cn.t_dew_t.default`。图种与配方的完整语义请参阅 cedar-graph 文档及其
-`cedar_graph/recipes/cn/` 目录。
+诊断产品也以 workflow 产品 ID 提供，例如 `cn.shr.default` 和
+`cn.t_dew_t.default`。产品 ID 与 v3 配方目录见 cedar-graph 文档。
 
 ## 运行行为与产物
 
@@ -158,11 +164,11 @@ plots:
 - `task-manifest.json` 记录任务计划标识、作业结果、数据源标识和任务级共享读取
   统计，但不会记录凭据或完整环境变量值。
 
-## 外部配方与示例
+## 外部 v3 配方与示例
 
 外部配方可让业务开发在不等待 cedar-graph 发布新版本的情况下新增或修改图种。
-复制 `cedar_graph/recipes/cn/` 中的内置配方后按需修改，再在任务文件的 `plots`
-中引用即可。仓库中的 [examples/](examples/) 包含任务文件和
+复制 `cedar_graph/recipes/workflow/cn/` 中的 v3 配方后按需修改，再在任务文件的 `plots`
+中引用即可。相对路径以任务文件所在目录为基准。仓库中的 [examples/](examples/) 包含任务文件和
 [`recipes/t2m_custom.yaml`](examples/recipes/t2m_custom.yaml) 示例。
 
 ## 许可证

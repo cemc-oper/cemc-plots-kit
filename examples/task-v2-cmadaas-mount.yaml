@@ -9,9 +9,9 @@ source:
     storage_base: /CMADAAS
 
 time:
-  start_time: 2026071600
+  start_time: 2026092200
   forecast_time: 24h
-  forecast_interval: 6h
+  forecast_interval: 24h
 
 runtime:
   work_dir: ./work
@@ -22,5 +22,3 @@ runtime:
 
 plots:
   cn.t2m: true
-  cn.h_500_psl: true
-  cn.rain_24h: true
