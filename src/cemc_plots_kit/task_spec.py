@@ -133,30 +133,8 @@ def resolve_task_dataset(source: SourceConfig):
     )
 
 
-def convert_v1_task(value: dict[str, Any]) -> dict[str, Any]:
-    """Convert a legacy mapping without mutating the YAML parser's result."""
-    source = dict(value.get("source") or {})
-    runtime = dict(value.get("runtime") or {})
-    return {
-        "api_version": "cemc.plots/v2",
-        "kind": "PlotTask",
-        "source": {"dataset": value.get("system_name", ""), "overrides": {}},
-        "time": dict(value.get("time") or {}),
-        "runtime": {
-            "work_dir": runtime.get("work_dir", runtime.get("base_work_dir", "work")),
-            "output_dir": runtime.get("output_dir", "output"),
-            "missing": runtime.get("missing", "skip"),
-            "workers": runtime.get("workers", 1),
-            "shared_reads": runtime.get("shared_reads", True),
-        },
-        "plots": dict(value.get("plots") or {}),
-        **({"area": dict(value["area"])} if "area" in value else {}),
-        "_legacy_source": source,
-    }
-
-
 def load_task_spec(path: Path, *, check_source_policy: bool = True) -> PlotTaskV2:
-    """Read YAML and route v1/v2 input to the strict v2 model."""
+    """Read and validate one versioned task without accessing field values."""
     import yaml
     try:
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
@@ -164,18 +142,11 @@ def load_task_spec(path: Path, *, check_source_policy: bool = True) -> PlotTaskV
         raise TaskSpecError(f"invalid YAML in {path}: {exc}") from exc
     if not isinstance(raw, dict):
         raise TaskSpecError("task document must be a mapping")
-    legacy = "api_version" not in raw and "kind" not in raw
-    if legacy:
-        raw = convert_v1_task(raw)
-        raw.pop("_legacy_source")
     try:
         task = PlotTaskV2.model_validate(raw)
     except ValidationError as exc:
         raise TaskSpecError(exc.json(include_url=False)) from exc
-    # Legacy tasks retain their historical catalog/file-pattern binding at
-    # execution time.  They are still strictly converted, but are not made to
-    # pretend that a HPC source is a CMADAAS mount.
-    if check_source_policy and not legacy:
+    if check_source_policy:
         resolve_task_source(task.source)
     return task
 

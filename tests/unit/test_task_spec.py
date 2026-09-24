@@ -8,7 +8,6 @@ from cemc_plots_kit.__main__ import app
 from cemc_plots_kit.task_spec import (
     PlotTaskV2,
     TaskSpecError,
-    convert_v1_task,
     load_task_spec,
     mounted_catalog_path,
     resolve_task_source,
@@ -52,19 +51,6 @@ def test_unknown_fields_are_rejected(tmp_path):
     path.write_text(V2_TASK + "unexpected: true\n", encoding="utf-8")
     with pytest.raises(TaskSpecError, match="extra_forbidden"):
         load_task_spec(path)
-
-
-def test_v1_conversion_is_pure_and_keeps_plot_forms():
-    legacy = {
-        "system_name": "CMA-GFS",
-        "time": {"start_time": "2026071600", "forecast_time": "24h", "forecast_interval": "6h"},
-        "runtime": {"base_work_dir": "run"},
-        "plots": {"cn.t2m": True, "cn.rain_wind_10m": [{"interval": "6h"}]},
-    }
-    converted = convert_v1_task(legacy)
-    assert legacy["runtime"] == {"base_work_dir": "run"}
-    assert converted["plots"] == legacy["plots"]
-    assert PlotTaskV2.model_validate({key: value for key, value in converted.items() if key != "_legacy_source"})
 
 
 def test_packaged_schema_has_no_drift():

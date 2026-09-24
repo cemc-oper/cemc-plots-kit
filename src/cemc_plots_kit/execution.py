@@ -48,7 +48,7 @@ def _job_config(job: dict[str, Any], task: PlotTaskV2, plan: TaskPlan, source) -
     runtime = plan.document["runtime"]
     area = task.area.model_dump() if task.area is not None else None
     return JobConfig(
-        expr_config=ExprConfig(system_name=source.record.dataset_id, data_dir="", source_spec=source.source,
+        expr_config=ExprConfig(source_spec=source.source,
                                dataset_id=source.record.dataset_id,
                                area=AreaRange(**area) if area is not None else None),
         runtime_config=RuntimeConfig(work_dir=Path(runtime["work_dir"]), output_dir=Path(runtime["output_dir"])),

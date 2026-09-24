@@ -84,7 +84,7 @@ def _run_case(case, output_root, barrier=None):
     start_time = pd.Timestamp("2024-07-01")
     forecast_time = pd.Timedelta("24h")
     config = JobConfig(
-        expr_config=ExprConfig(system_name="CMA-GFS", data_dir="", area=AreaRange(**area)),
+        expr_config=ExprConfig(area=AreaRange(**area)),
         runtime_config=RuntimeConfig(work_dir=output_root / "work", output_dir=output_root / "output"),
         time_config=TimeConfig(start_time, forecast_time),
         plot_config=PlotConfig(case["plot"], plot_params=case["params"]),

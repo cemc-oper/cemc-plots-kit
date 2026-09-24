@@ -1,18 +1,18 @@
 # cemc-plots-kit 任务用例
 
-`task.yaml` 演示 plots 段的三种取值形式与外部配方引用：
+任务文件使用版本化 `cemc.plots/v2` schema。当前示例分别演示 CMADaaS
+挂载数据集和集合预报产品：
 
-* `cn.h_500_psl: on` —— 开关形式
-* `cn.rain_wind_10m` —— 参数映射/列表形式（`interval` 参数）
-* `recipes/t2m_custom.yaml` —— 外部配方，相对 task 文件目录解析，
-  输出文件名为 `t2m_custom_<起报时次>_<时效>.png`
+- `task-v2-cmadaas-mount.yaml`：CMA-GFS 单产品任务。
+- `task-v2-ensemble.yaml`：CMA-GEPS 集合温度任务。
 
-运行：
+先验证或生成静态计划；执行命令会读取任务中配置的数据源：
 
 ```shell
-python -m cemc_plots_kit task --task-file ./task.yaml
+cemc-plots validate ./task-v2-cmadaas-mount.yaml
+cemc-plots plan ./task-v2-cmadaas-mount.yaml
+cemc-plots run ./task-v2-cmadaas-mount.yaml
 ```
 
-外部配方 `recipes/t2m_custom.yaml` 基于内置 v3 `cn.t2m` workflow，
-默认使用夏季色标并修改标题。可复制
-`cedar_graph/recipes/workflow/cn/t2m.yaml` 后按需修改。
+集合示例可用同样的 `validate`、`plan`、`run` 命令，将任务路径替换为
+`./task-v2-ensemble.yaml`。

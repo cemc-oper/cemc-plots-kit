@@ -13,7 +13,7 @@ import pandas as pd
 from cemc_plots_kit.config import PlotConfig, TimeConfig
 from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
                                   check_plot_available, get_plot_definition, workflow_context)
-from cemc_plots_kit.task import parse_plots_config
+from cemc_plots_kit.task_config import parse_plots_config
 from cemc_plots_kit.task_spec import PlotTaskV2, resolve_task_dataset
 
 

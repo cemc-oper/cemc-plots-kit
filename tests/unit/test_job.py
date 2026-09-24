@@ -19,9 +19,7 @@ from cemc_plots_kit.job import (
 def _make_job_config(work_dir, plot_name, start_time, forecast_time, system_name, plot_params=None):
     return JobConfig(
         expr_config=ExprConfig(
-            system_name=system_name,
-            data_dir="/not/used",
-            data_file_name_template="not.used.{forecast_hour_label}",
+            source_spec=None,
         ),
         runtime_config=RuntimeConfig(
             base_work_dir=str(work_dir),

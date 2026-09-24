@@ -37,11 +37,6 @@ def forecast_time_24h() -> pd.Timedelta:
     return pd.to_timedelta("24h")
 
 
-@pytest.fixture
-def cma_gfs_data_dir():
-    return "/g3/COMMONDATA/OPER/CEMC/GFS_GMF/Prod-grib/{start_time_label}/ORIG"
-
-
 @dataclass
 class PlotArea:
     name: str

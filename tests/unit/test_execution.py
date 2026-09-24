@@ -26,7 +26,7 @@ plots: {cn.t2m: true}
 def test_owned_provider_receives_task_area_without_modifying_source():
     source = reki.SourceSpec("local", args=("synthetic",))
     area = AreaRange(95, 125, 20, 45)
-    provider = create_data_source(ExprConfig("CMA-GFS", "", area=area, source_spec=source))
+    provider = create_data_source(ExprConfig(area=area, source_spec=source))
     try:
         assert provider.region == {"start_longitude": 95, "end_longitude": 125,
                                    "start_latitude": 20, "end_latitude": 45}
