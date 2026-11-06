@@ -19,12 +19,21 @@ from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConf
 from cemc_plots_kit.errors import classify_error, execution_cause, is_missing_error
 from cemc_plots_kit.job import get_output_image_file_name, run_job
 from cemc_plots_kit.manifest import write_manifest
+from cemc_plots_kit.run_state import ResumeError, output_information, recovery_identity, resume_records
 from cemc_plots_kit.task_plan import TaskPlan, build_task_plan
 from cemc_plots_kit.task_spec import PlotTaskV2, resolve_task_dataset
 
 
 class TaskExecutionError(RuntimeError):
     """A worker failed after its serializable failure was recorded."""
+
+
+class TaskInterrupted(KeyboardInterrupt):
+    """A CLI termination signal represented at the normal cleanup boundary."""
+
+    def __init__(self, signal_name: str):
+        super().__init__(signal_name)
+        self.signal_name = signal_name
 
 
 class ExecutionContext:
@@ -68,6 +77,9 @@ def _run_group(group: list[tuple[int, str, JobConfig]], provider, storage_base: 
         evidence = {}
         try:
             outputs = run_job(config, data_source=provider, evidence=evidence)
+        except KeyboardInterrupt as exc:
+            exc.job_evidence = evidence
+            raise
         except Exception as exc:
             cause = execution_cause(exc)
             detail = cause.to_dict() if isinstance(cause, (reki.QueryError, reki.SourceError, reki.CompletenessError)) else None
@@ -108,90 +120,132 @@ def _check_output_collisions(jobs: list[tuple[int, dict[str, Any], JobConfig]]) 
 def _result_from_worker(item: dict[str, Any], missing: str) -> tuple[dict[str, Any], bool]:
     if item["status"] == "success":
         return {"job_id": item["job_id"], "status": "success", "outputs": item["outputs"],
-                "provider_trace": item.get("provider_trace", [])}, False
+                "outputs_info": output_information(item["outputs"]),
+                "provider_trace": item.get("provider_trace", []),
+                **({"timings": item["timings"]} if "timings" in item else {})}, False
     if item["is_missing"] and missing in {"skip", "warn"}:
         return {"job_id": item["job_id"], "status": "skipped", "reason": item["code"], "warning": missing == "warn",
                 "error": {key: item[key] for key in ("code", "type", "message", "detail") if item.get(key) is not None},
                 "provider_trace": item.get("provider_trace", []),
+                **({"timings": item["timings"]} if "timings" in item else {}),
                 **({"workflow_error": item["workflow_error"]} if "workflow_error" in item else {})}, False
     return {"job_id": item["job_id"], "status": "failed", "error": {
         **{key: item[key] for key in ("code", "type", "message")},
         **({"detail": item["detail"]} if item.get("detail") is not None else {})},
         "provider_trace": item.get("provider_trace", []),
+        **({"timings": item["timings"]} if "timings" in item else {}),
         **({"workflow_error": item["workflow_error"]} if "workflow_error" in item else {})}, True
 
 
-def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
+def run_task_spec(task: PlotTaskV2, *, task_file: Path, resume: bool = False) -> dict[str, Any]:
     """Run a v2 task, using isolated processes only when workers exceeds one."""
     plan = build_task_plan(task, task_file=task_file)
     source = resolve_task_dataset(task.source)
+    if resume and task.runtime.workers != 1:
+        raise TaskExecutionError("resume currently requires workers=1")
     started = time()
     executable = [(index, job, _job_config(job, task, plan, source)) for index, job in enumerate(plan.document["jobs"]) if job["executable"]]
     _check_output_collisions(executable)
+    manifest_path = Path(plan.document["runtime"]["output_dir"]) / "task-manifest.json"
+    identity = recovery_identity(plan, task_file, source.definitions)
+    expected_outputs = {job["id"]: Path(config.runtime_config.output_dir) / get_output_image_file_name(config)
+                        for _, job, config in executable}
+    try:
+        reused, attempt = resume_records(manifest_path, identity, expected_outputs,
+                                         [job["id"] for job in plan.document["jobs"]]) if resume else ({}, 1)
+    except ResumeError as exc:
+        raise TaskExecutionError(f"resume rejected: {exc}") from exc
+
     by_index: dict[int, dict[str, Any]] = {}
-    fatal = False
-
-    if task.runtime.workers == 1:
-        region = task.area.model_dump() if task.area is not None else None
-        context = ExecutionContext(source, shared_reads=task.runtime.shared_reads, region=region)
-        try:
-            for index, job, config in executable:
-                record, failed = _result_from_worker(_run_group([(index, job["id"], config)], context.provider_for_job(), source.source.get("root"))[0][1], task.runtime.missing)
-                by_index[index] = record
-                if failed:
-                    fatal = True
-            sharing = context.summary()
-        finally:
-            context.close()
-    else:
-        groups = _worker_groups(executable)
-        if groups:
-            with ProcessPoolExecutor(max_workers=min(task.runtime.workers, len(groups)), mp_context=get_context("spawn")) as pool:
-                region = task.area.model_dump() if task.area is not None else None
-                futures = [pool.submit(_run_worker_group, group, source.source, task.runtime.shared_reads,
-                                       source.source.get("root"), region) for group in groups]
-                try:
-                    for group, future in zip(groups, futures):
-                        try:
-                            items = future.result()
-                        except Exception as exc:
-                            index, job_id, _ = group[0]
-                            by_index[index] = {
-                                "job_id": job_id,
-                                "status": "failed",
-                                "error": {"code": "worker_crash", "type": type(exc).__name__, "message": str(exc)},
-                            }
-                            fatal = True
-                            continue
-                        for index, item in items:
-                            record, failed = _result_from_worker(item, task.runtime.missing)
-                            by_index[index] = record
-                            fatal = fatal or failed
-                except KeyboardInterrupt:
-                    for future in futures:
-                        future.cancel()
-                    raise
-        sharing = {"shared_reads": task.runtime.shared_reads, "field_cache": {"hits": 0, "misses": 0, "entries": 0}, "worker_groups": len(groups)}
-
-    results: list[dict[str, Any]] = []
     for index, job in enumerate(plan.document["jobs"]):
         if not job["executable"]:
             if job["issues"]:
                 issue = next(item for item in plan.document["issues"] if item["job_id"] == job["id"])
-                results.append({"job_id": job["id"], "status": "failed", "error": {
-                    "code": issue["code"], "type": "TaskPlanError", "message": issue["message"]}})
-                fatal = True
+                by_index[index] = {"job_id": job["id"], "status": "failed", "error": {
+                    "code": issue["code"], "type": "TaskPlanError", "message": issue["message"]}}
             else:
-                results.append({"job_id": job["id"], "status": "skipped", "reason": job.get("skip_reason", "not_executable")})
-        elif index in by_index:
-            results.append(by_index[index])
+                by_index[index] = {"job_id": job["id"], "status": "skipped", "reason": job.get("skip_reason", "not_executable")}
+        elif job["id"] in reused:
+            by_index[index] = reused[job["id"]]
         else:
-            results.append({"job_id": job["id"], "status": "not_run", "reason": "previous_job_failed"})
+            by_index[index] = {"job_id": job["id"], "status": "not_run", "reason": "pending"}
 
+    sharing = {"shared_reads": task.runtime.shared_reads,
+               "field_cache": {"hits": 0, "misses": 0, "entries": 0}}
+
+    def publish(status: str, **extra) -> dict[str, Any]:
+        document = {"api_version": "cemc.plots.manifest/v1", "checkpoint_format": 1,
+                    "task_plan_identity": plan.identity, "recovery_identity": identity,
+                    "attempt": attempt, "recovery": {"resumed": resume, "reused_job_ids": list(reused)},
+                    "status": status, "duration_seconds": time() - started,
+                    "source": {"dataset_id": source.dataset_id, "catalog_origin": source.origin,
+                               "provider": source.source["kind"], "declaration": source.source,
+                               "definitions": list(source.definitions)},
+                    "sharing": sharing, "results": [by_index[index] for index in sorted(by_index)],
+                    "manifest_path": str(manifest_path), **extra}
+        write_manifest(manifest_path, document)
+        return document
+
+    # Resume preflight above is complete before any previous checkpoint is replaced.
+    publish("running")
+    pending = [(index, job, config) for index, job, config in executable if job["id"] not in reused]
+    try:
+        if task.runtime.workers == 1:
+            region = task.area.model_dump() if task.area is not None else None
+            context = ExecutionContext(source, shared_reads=task.runtime.shared_reads, region=region)
+            try:
+                for index, job, config in pending:
+                    by_index[index] = {"job_id": job["id"], "status": "running"}
+                    publish("running")
+                    record, _ = _result_from_worker(_run_group([(index, job["id"], config)], context.provider_for_job(), source.source.get("root"))[0][1], task.runtime.missing)
+                    by_index[index] = record
+                    sharing = context.summary()
+                    publish("running")
+            finally:
+                sharing = context.summary()
+                context.close()
+        else:
+            groups = _worker_groups(pending)
+            sharing["worker_groups"] = len(groups)
+            if groups:
+                with ProcessPoolExecutor(max_workers=min(task.runtime.workers, len(groups)), mp_context=get_context("spawn")) as pool:
+                    region = task.area.model_dump() if task.area is not None else None
+                    futures = [pool.submit(_run_worker_group, group, source.source, task.runtime.shared_reads,
+                                           source.source.get("root"), region) for group in groups]
+                    for index, job, _ in pending:
+                        by_index[index] = {"job_id": job["id"], "status": "running"}
+                    publish("running")
+                    try:
+                        for group, future in zip(groups, futures):
+                            try:
+                                items = future.result()
+                            except Exception as exc:
+                                index, job_id, _ = group[0]
+                                by_index[index] = {"job_id": job_id, "status": "failed", "error": {
+                                    "code": "worker_crash", "type": type(exc).__name__, "message": str(exc)}}
+                                publish("running")
+                                continue
+                            for index, item in items:
+                                by_index[index], _ = _result_from_worker(item, task.runtime.missing)
+                                publish("running")
+                    except KeyboardInterrupt:
+                        for future in futures:
+                            future.cancel()
+                        raise
+    except KeyboardInterrupt as exc:
+        for index, record in by_index.items():
+            if record["status"] == "running":
+                by_index[index] = {**record, "status": "interrupted", **getattr(exc, "job_evidence", {})}
+            elif record["status"] == "not_run":
+                record["reason"] = "interrupted"
+        publish("interrupted", interruption={"type": type(exc).__name__,
+                                             "signal": getattr(exc, "signal_name", "SIGINT")})
+        raise
+
+    results = [by_index[index] for index in sorted(by_index)]
+    fatal = any(item["status"] == "failed" for item in results)
     status = "failed" if fatal else ("partial" if any(item["status"] == "skipped" for item in results) else "success")
-    document = {"api_version": "cemc.plots.manifest/v1", "task_plan_identity": plan.identity, "status": status, "duration_seconds": time() - started, "source": {"dataset_id": source.dataset_id, "catalog_origin": source.origin, "provider": source.source["kind"], "declaration": source.source, "definitions": list(source.definitions)}, "sharing": sharing, "results": results}
-    manifest_path = Path(plan.document["runtime"]["output_dir"]) / "task-manifest.json"
-    document["manifest_path"] = str(write_manifest(manifest_path, document))
+    document = publish(status)
     if fatal:
         first = next(item for item in results if item["status"] == "failed")
         raise TaskExecutionError(f"{first['error']['code']}: {first['error']['message']}")

@@ -180,6 +180,10 @@ plots:
   统计。每个实际读取保留 provider trace、公共 QueryReport、字段身份和原文件引用，
   包含实际资源版本和摘要；包装后的读取错误仍保留公共错误码及 workflow 节点位置。
   不会记录凭据或完整环境变量值。
+- 运行开始及作业结果返回时原子更新 manifest，单 worker 还记录作业开始及
+  SIGINT／SIGTERM 中断。单 worker 可用 `cemc-plots run task.yaml --resume`，在核对任务、软件资源、
+  输入指纹和输出摘要后复用成功作业，重试其余作业。恢复边界及阶段计时见
+  [任务执行说明](docs/task-workflow.md#中断记录与显式恢复)。
 
 ## 外部 v3 配方与示例
 

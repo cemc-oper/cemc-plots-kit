@@ -1,12 +1,14 @@
 from pathlib import Path
 from dataclasses import asdict, is_dataclass
 import os
+from time import perf_counter
 from uuid import uuid4
 
 import pandas as pd
 
 from cedarkit.plots.chart import Panel
 from cedar_graph.data import RekiProvider
+from cedarkit.plots.workflow.render import WorkflowRenderError, render_result
 
 from cemc_plots_kit.config import JobConfig, ExprConfig
 from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
@@ -40,6 +42,8 @@ def run_job(job_config: JobConfig, *, data_source=None, evidence=None) -> list[P
     List[Path]
         path list for generated figures.
     """
+    started = perf_counter()
+    timings = {}
     runtime_config = job_config.runtime_config
     plot_config = job_config.plot_config
 
@@ -80,16 +84,22 @@ def run_job(job_config: JobConfig, *, data_source=None, evidence=None) -> list[P
         if data_source is None and isinstance(plot_definition, (WorkflowProduct, EnsembleT2MProduct)):
             owned_provider = create_data_source(expr_config=job_config.expr_config)
         panel = run_plot(plot_definition=plot_definition, job_config=job_config,
-                         data_source=owned_provider if owned_provider is not None else data_source)
+                         data_source=owned_provider if owned_provider is not None else data_source,
+                         timings=timings)
 
         job_logger.info(f"saving output image... {output_image_file_path}")
         temporary_path = output_image_file_path.with_name(
             f".{output_image_file_path.stem}.{uuid4().hex}.tmp{output_image_file_path.suffix}"
         )
-        panel.save(temporary_path)
-        os.replace(temporary_path, output_image_file_path)
+        save_started = perf_counter()
+        try:
+            panel.save(temporary_path)
+            os.replace(temporary_path, output_image_file_path)
+        finally:
+            timings["save_seconds"] = perf_counter() - save_started
     finally:
         if evidence is not None:
+            evidence["timings"] = {**timings, "total_seconds": perf_counter() - started}
             provider = owned_provider if owned_provider is not None else data_source
             evidence["provider_trace"] = [
                 asdict(item) if is_dataclass(item) else dict(item)
@@ -108,7 +118,7 @@ def run_job(job_config: JobConfig, *, data_source=None, evidence=None) -> list[P
     return [output_image_file_path]
 
 
-def run_plot(plot_definition, job_config: JobConfig, *, data_source=None) -> Panel:
+def run_plot(plot_definition, job_config: JobConfig, *, data_source=None, timings=None) -> Panel:
     """Run one selected v3 product with a caller or job-owned provider."""
     expr_config = job_config.expr_config
     time_config = job_config.time_config
@@ -125,7 +135,38 @@ def run_plot(plot_definition, job_config: JobConfig, *, data_source=None) -> Pan
         provider = data_source if data_source is not None else create_data_source(expr_config=expr_config)
         if not hasattr(provider, "fetch_many") and not hasattr(provider, "fetch"):
             raise TypeError("workflow product requires a field request provider")
-        return plot_definition.run(provider, workflow_context(time_config, plot_config))
+        # Use the same public compile/execute/render sequence as WorkflowProduct.run,
+        # retaining phase timings for each durable task result.
+        timings = timings if timings is not None else {}
+        compile_started = perf_counter()
+        plan = plot_definition.compile(workflow_context(time_config, plot_config))
+        timings["compile_seconds"] = perf_counter() - compile_started
+        trace_start = len(getattr(provider, "trace", ()))
+        execution_started = perf_counter()
+        try:
+            result = plan.execute(provider, registry=plot_definition.discovery.ops)
+        finally:
+            elapsed = perf_counter() - execution_started
+            reads = getattr(provider, "trace", ())[trace_start:]
+            read_seconds = sum(item.duration_seconds for item in reads)
+            timings.update(execute_seconds=elapsed, read_seconds=read_seconds,
+                           compute_and_runtime_seconds=max(0.0, elapsed - read_seconds))
+        render_started = perf_counter()
+        try:
+            panel = render_result(result, domains=plot_definition.discovery.domains, render=False)
+            try:
+                panel.render()
+            except Exception as exc:
+                panel.close()
+                if isinstance(exc, WorkflowRenderError):
+                    raise
+                raise WorkflowRenderError(result.recipe_identity, "render", exc) from exc
+            except BaseException:
+                panel.close()
+                raise
+            return panel
+        finally:
+            timings["render_seconds"] = perf_counter() - render_started
 
     raise TypeError("plot definition must be a v3 product")
 

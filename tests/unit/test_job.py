@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 import matplotlib.pyplot as plt
 from cedar_graph.testing import MockDataSource
+from cedarkit.plots.workflow.render import WorkflowRenderError
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
 from cemc_plots_kit.job import (
@@ -61,8 +62,9 @@ class TestOutputNaming:
 
 
 class TestRunJob:
+    @pytest.mark.parametrize("error_type", [RuntimeError, KeyboardInterrupt])
     def test_failed_save_preserves_existing_output_and_caller_figure(
-            self, monkeypatch, tmp_path, start_time, forecast_time, system_name):
+            self, monkeypatch, tmp_path, start_time, forecast_time, system_name, error_type):
         config = _make_job_config(tmp_path, "cn.t2m", start_time, forecast_time, system_name)
         output = tmp_path / "output" / get_output_image_file_name(config)
         output.parent.mkdir()
@@ -73,19 +75,45 @@ class TestRunJob:
         class FailingPanel:
             def save(self, path):
                 Path(path).write_bytes(b"incomplete")
-                raise RuntimeError("save failed")
+                raise error_type("save failed")
 
             def close(self):
                 closed.append(True)
 
         monkeypatch.setattr("cemc_plots_kit.job.run_plot", lambda **kwargs: FailingPanel())
-        with pytest.raises(RuntimeError, match="save failed"):
+        with pytest.raises(error_type, match="save failed"):
             run_job(config, data_source=object())
         assert output.read_bytes() == b"previous complete image"
         assert list(output.parent.glob(".*.tmp.png")) == []
         assert closed == [True]
         assert plt.fignum_exists(figure.number)
         plt.close(figure)
+
+    @pytest.mark.parametrize("error_type", [KeyboardInterrupt, RuntimeError])
+    def test_failed_render_closes_its_panel_and_preserves_caller_figure(
+            self, monkeypatch, mock_data_source, tmp_path, start_time, forecast_time, system_name, error_type):
+        config = _make_job_config(tmp_path, "cn.t2m", start_time, forecast_time, system_name)
+        caller = plt.figure()
+        owned = plt.figure()
+
+        class InterruptedPanel:
+            def render(self):
+                raise error_type("render interrupted")
+
+            def close(self):
+                plt.close(owned)
+
+        monkeypatch.setattr("cemc_plots_kit.job.render_result", lambda *args, **kwargs: InterruptedPanel())
+        expected_error = KeyboardInterrupt if error_type is KeyboardInterrupt else WorkflowRenderError
+        with pytest.raises(expected_error, match="render interrupted") as caught:
+            run_job(config)
+        if error_type is RuntimeError:
+            assert caught.value.path == "render"
+            assert isinstance(caught.value.cause, RuntimeError)
+        assert not plt.fignum_exists(owned.number)
+        assert plt.fignum_exists(caller.number)
+        assert list((tmp_path / "output").glob("*.png")) == []
+        plt.close(caller)
 
     def test_run_job_restores_working_directory(
             self, mock_data_source, tmp_path, start_time, forecast_time, system_name
