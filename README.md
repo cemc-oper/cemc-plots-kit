@@ -122,6 +122,11 @@ CMADaaS 服务凭据。挂载目录布局需与 reki 中对应系统的 `cmadaas
 [`examples/task-v2-gfs-t2m.yaml`](examples/task-v2-gfs-t2m.yaml) 固定了首链的
 2026-11-02 12 UTC、+6h 原场及 `cn_summer` 样式。
 
+同一起报和时效的 10 m 风任务见
+[`examples/task-v2-gfs-wind-10m.yaml`](examples/task-v2-gfs-wind-10m.yaml)。
+该产品使用具名的 10 m 风分量，物理分量和风速保持 m/s；专用风羽样式明确采用
+半羽 2、全羽 4、旗标 20 m/s，标题显示实际数据集、起报、有效时间和时效。
+
 ## 图种与参数
 
 `plots` 的每个键可以是内置图种名，也可以是外部 `.yaml` / `.yml` 配方路径。

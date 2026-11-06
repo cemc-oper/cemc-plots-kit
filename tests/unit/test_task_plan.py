@@ -35,6 +35,28 @@ def test_t2m_task_plan_uses_v3_workflow_without_reading_fields(tmp_path, monkeyp
     assert len(plan.to_dict()["requests"]) == 2
 
 
+def test_wind_task_plan_binds_named_10m_fields_and_actual_dataset(tmp_path, monkeypatch):
+    task_file = tmp_path / "wind.yaml"
+    task_file.write_text(TASK.replace("start_time: 2026071600", "start_time: 2026110212").replace(
+        "forecast_time: 24h, forecast_interval: 24h",
+        "forecast_start: 6h, forecast_time: 6h, forecast_interval: 6h").replace(
+        "plots: {cn.t2m: true, cn.h_500_psl: true, cn.rain_24h: true}",
+        "plots: {cn.wind_10m: true}"))
+    monkeypatch.setattr(reki, "from_source", lambda *args, **kwargs: pytest.fail("plan opened a source"))
+
+    plan = build_task_plan(load_task_spec(task_file), task_file=task_file).to_dict()
+
+    assert len(plan["jobs"]) == 1
+    job = plan["jobs"][0]
+    assert job["executable"] and not plan["issues"]
+    queries = [item["request"]["query"] for item in plan["requests"]]
+    assert {query["parameter"] for query in queries} == {"cedarkit.u10m", "cedarkit.v10m"}
+    assert all(query["level_type"] == "height_above_ground" and query["level"] == 10 for query in queries)
+    titles = "\n".join(item["text"] for item in job["plot_plan"]["content"]["charts"][0]["titles"])
+    for token in ("cma_gfs_gmf", "2026110212 UTC", "2026110218 UTC", "+006h"):
+        assert token in titles
+
+
 def test_former_python_product_has_static_v3_plan(tmp_path, monkeypatch):
     task_file = tmp_path / "task.yaml"
     task_file.write_text(TASK.replace(
