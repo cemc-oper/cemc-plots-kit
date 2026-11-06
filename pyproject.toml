@@ -29,9 +29,10 @@ dependencies = [
     "typer",
     "PyYAML",
     "pydantic>=2,<3",
-    "cedarkit-plots>=2026.9.0",
-    "cedar-graph>=2026.9.0",
-    "reki>=2026.9.0",
+    # Keep the wind style, model parameter and public source contract together.
+    "cedarkit-plots>=2026.9.1.dev42",
+    "cedar-graph>=2026.9.1.dev20",
+    "reki>=2026.9.1.dev100",
 ]
 
 [project.scripts]
@@ -65,3 +66,5 @@ version_file = "src/cemc_plots_kit/_version.py"
 [tool.uv.sources]
 cedarkit-plots = { path = "../../repo/cedarkit-plots", editable = true }
 cedar-graph = { path = "../../repo/cedar-graph", editable = true }
+reki = { path = "../../repo/reki", editable = true }
+cedarkit-query = { path = "../../repo/cedarkit-query" }

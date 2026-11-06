@@ -281,7 +281,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'test'" },
     { name = "pytest-cov", marker = "extra == 'cov'" },
     { name = "pyyaml" },
-    { name = "reki", specifier = ">=2026.9.0" },
+    { name = "reki", editable = "../../repo/reki" },
     { name = "typer" },
 ]
 provides-extras = ["test", "cov"]
