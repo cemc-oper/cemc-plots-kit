@@ -188,7 +188,8 @@ class TestRunJob:
         assert len(outputs) == 1
         assert outputs[0].exists() and outputs[0].stat().st_size > 0
         assert "member_ids_m01-m02" in outputs[0].name
-        assert {request.key.query.member for request in source.workflow_requests} == {"ctl", "m01", "m02"}
+        assert {(request.key.query.to_dict().get("member"), request.key.query.to_dict().get("member_role"))
+                for request in source.workflow_requests} == {(None, "control"), (1, None), (2, None)}
 
     def test_run_job_external_recipe(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
         recipe_path = tmp_path / "t2m_custom.yaml"

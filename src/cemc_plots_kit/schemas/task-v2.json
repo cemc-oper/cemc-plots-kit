@@ -98,6 +98,11 @@
           "title": "Forecast Interval",
           "type": "string"
         },
+        "forecast_start": {
+          "default": "0 days 00:00:00",
+          "title": "Forecast Start",
+          "type": "string"
+        },
         "forecast_time": {
           "title": "Forecast Time",
           "type": "string"

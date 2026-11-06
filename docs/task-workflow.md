@@ -36,6 +36,15 @@ plots:
 显式传入 `member_ids`，并可分别指定 control、是否纳入 MAX、缺测策略和列数。
 外部 recipe 路径按任务 YAML 所在目录解析。任务和 recipe 均不携带用户凭据。
 
+`time.forecast_start` 可指定起始时效，默认 `0h`；它不得大于 `forecast_time`。
+只复跑 +6h 时，设置 `forecast_start: 6h`、`forecast_time: 6h` 和
+`forecast_interval: 6h`。首链冻结样例见
+[`../examples/task-v2-gfs-t2m.yaml`](../examples/task-v2-gfs-t2m.yaml)。
+
+挂载数据集别名在应用内转换成公共 `local` 来源声明；`source.dataset` 也接受
+reki 中已登记的规范产品 ID。绑定时只校验版本化资源，不检查挂载目录和业务文件。
+显式文件的 `file + native.grib` 读取是 reki 的独立能力，不要求应用数据集别名登记。
+
 ## CLI 命令
 
 ```bash
@@ -58,6 +67,11 @@ provider、不解码数据、不渲染、不写输出。`run` 才读取任务文
   `false` 时每个作业独立创建读取上下文。不同任务不共享可变字段缓存或绘图状态。
 - `missing: skip|warn` 只影响明确的缺失数据；配置、编译和其他读取错误不会被当作
   缺失吞掉。manifest 保留每个作业的 success、skipped 或 failed 状态。
+- 公共读场异常经过 workflow 包装后，仍按根因分类：`no_match`／`missing_fields`
+  可应用缺场策略，解码、服务、权限和歧义错误继续失败。失败记录保留公共错误对象、
+  workflow 节点／配方位置及 provider trace。
+- 成功作业的 provider trace 包含公共查询报告、字段身份和原文件引用；来源定义
+  记录实际资源内容版本及 SHA256，可与候选 wheel 清单共同追溯软件和输入。
 - PNG 与 manifest 使用目标目录中的唯一临时文件，成功后原子替换；失败时清理临时
   文件并保留之前已完整写入的结果。
 - 完成绘图后关闭任务自己创建的 Panel/provider；不会关闭调用方拥有的 Figure 或

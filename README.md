@@ -112,6 +112,16 @@ CMADaaS 服务凭据。挂载目录布局需与 reki 中对应系统的 `cmadaas
 `source.overrides.storage_base` 指定当前机器的挂载根目录。不要把特定机器的
 挂载路径写入包内 catalog。
 
+上述挂载别名由应用映射到公共来源声明，例如
+`{kind: local, dataset: cma_gfs_gmf, root: /CMADAAS}`。也可以直接在任务中使用
+`source.dataset: cma_gfs_gmf`。产品解释、布局和参数映射由 reki 的版本化资源负责；
+应用只保留部署别名，不使用旧 `Catalog.resolve()`。
+
+复跑指定单一时效时，可把 `time.forecast_start`、`forecast_time` 和
+`forecast_interval` 都设成 `6h`；省略 `forecast_start` 时仍从 0 小时开始。
+[`examples/task-v2-gfs-t2m.yaml`](examples/task-v2-gfs-t2m.yaml) 固定了首链的
+2026-11-02 12 UTC、+6h 原场及 `cn_summer` 样式。
+
 ## 图种与参数
 
 `plots` 的每个键可以是内置图种名，也可以是外部 `.yaml` / `.yml` 配方路径。
@@ -162,7 +172,9 @@ plots:
   0 小时时效通常不可用。
 - 输出文件会按图种、参数、起报时间和时效命名；参数化图种的名称包含参数后缀。
 - `task-manifest.json` 记录任务计划标识、作业结果、数据源标识和任务级共享读取
-  统计，但不会记录凭据或完整环境变量值。
+  统计。每个实际读取保留 provider trace、公共 QueryReport、字段身份和原文件引用，
+  包含实际资源版本和摘要；包装后的读取错误仍保留公共错误码及 workflow 节点位置。
+  不会记录凭据或完整环境变量值。
 
 ## 外部 v3 配方与示例
 

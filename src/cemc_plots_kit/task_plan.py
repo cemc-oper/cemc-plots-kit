@@ -59,7 +59,8 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
     base_dir = task_file.parent
     start_time = pd.Timestamp(task.time.start_time)
     forecast_times = pd.timedelta_range(
-        "0h", pd.Timedelta(task.time.forecast_time), freq=pd.Timedelta(task.time.forecast_interval),
+        pd.Timedelta(task.time.forecast_start), pd.Timedelta(task.time.forecast_time),
+        freq=pd.Timedelta(task.time.forecast_interval),
     )
     jobs: list[dict[str, Any]] = []
     issues: list[dict[str, Any]] = []
@@ -73,7 +74,8 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
                 available = check_plot_available(
                     definition,
                     time_config=TimeConfig(start_time=start_time, forecast_time=forecast_time),
-                    plot_config=PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir),
+                    plot_config=PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir,
+                                           dataset_id=source.dataset_id, parameters=source.parameters),
                 )
             except Exception as exc:
                 issues.append({"code": "recipe_error", "job_id": job_id, "message": str(exc)})
@@ -97,7 +99,8 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
                 elif isinstance(definition, WorkflowProduct):
                     plot_plan = definition.compile(workflow_context(
                         TimeConfig(start_time=start_time, forecast_time=forecast_time),
-                        PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir))).to_dict()
+                        PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir,
+                                   dataset_id=source.dataset_id, parameters=source.parameters))).to_dict()
                     plans_to_group = [(None, plot_plan)]
                 else:
                     raise TypeError(f"plot {plot_name!r} has no v3 product plan")
@@ -123,7 +126,8 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
         "api_version": "cemc.plots.task-plan/v1",
         "identity": _identity({"task": normalized_input, "task_file": task_file.name}),
         "task": {"file": str(task_file), "normalized": normalized_input},
-        "source": {"dataset_id": source.record.dataset_id, "catalog_origin": source.origin, "source_spec": repr(source.source)},
+        "source": {"dataset_id": source.dataset_id, "catalog_origin": source.origin,
+                   "declaration": source.source, "definitions": list(source.definitions)},
         "runtime": {"work_dir": str((base_dir / task.runtime.work_dir).resolve()) if not task.runtime.work_dir.is_absolute() else str(task.runtime.work_dir), "output_dir": str((base_dir / task.runtime.output_dir).resolve()) if not task.runtime.output_dir.is_absolute() else str(task.runtime.output_dir), "workers": task.runtime.workers},
         "jobs": jobs,
         "requests": [grouped_requests[key] for key in sorted(grouped_requests)],

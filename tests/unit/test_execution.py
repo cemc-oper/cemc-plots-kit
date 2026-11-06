@@ -3,6 +3,7 @@ import json
 import pytest
 import reki
 from cedarkit.plots.types import AreaRange
+from cedarkit.plots.workflow.runtime import PlanExecutionError
 
 from cemc_plots_kit.config import ExprConfig
 from cemc_plots_kit.execution import TaskExecutionError, run_task_spec
@@ -78,12 +79,44 @@ def test_missing_field_is_skipped_and_recorded(tmp_path, monkeypatch):
     assert {item["reason"] for item in result["results"]} == {"field_missing"}
 
 
+@pytest.mark.parametrize("missing", [True, False])
+def test_workflow_read_errors_keep_root_detail_and_node(tmp_path, monkeypatch, missing):
+    path = tmp_path / "task.yaml"
+    path.write_text(TASK)
+    cause = reki.QueryError("no_match") if missing else reki.SourceError("decode_failed")
+
+    def failing_job(config, **kwargs):
+        raise PlanExecutionError("temperature", "cn.t2m", "recipe.yaml:12", "read failed", cause=cause)
+
+    monkeypatch.setattr("cemc_plots_kit.execution.run_job", failing_job)
+    if missing:
+        result = run_task_spec(load_task_spec(path), task_file=path)
+        assert result["status"] == "partial"
+    else:
+        with pytest.raises(TaskExecutionError, match="decode_failed"):
+            run_task_spec(load_task_spec(path), task_file=path)
+    manifest = json.loads((tmp_path / "output/task-manifest.json").read_text())
+    for item in manifest["results"]:
+        assert item["error"]["detail"]["code"] == cause.code
+        assert item["workflow_error"]["node_id"] == "temperature"
+
+
+def test_recipe_errors_fail_even_when_missing_is_skip(tmp_path):
+    path = tmp_path / "task.yaml"
+    path.write_text(TASK.replace("cn.t2m: true", "cn.unknown: true"))
+    with pytest.raises(TaskExecutionError, match="recipe_error"):
+        run_task_spec(load_task_spec(path), task_file=path)
+    manifest = json.loads((tmp_path / "output/task-manifest.json").read_text())
+    assert manifest["status"] == "failed"
+    assert {item["error"]["code"] for item in manifest["results"]} == {"recipe_error"}
+
+
 def test_shared_reads_reuses_one_provider_and_can_be_disabled(tmp_path, monkeypatch):
     path = tmp_path / "task.yaml"
     path.write_text(TASK, encoding="utf-8")
     providers = []
 
-    def fake_run_job(config, *, data_source=None):
+    def fake_run_job(config, *, data_source=None, evidence=None):
         providers.append(data_source)
         return []
 
@@ -128,7 +161,7 @@ def test_multiple_workers_rebuild_providers_and_keep_result_order(tmp_path, monk
         def submit(self, function, *args):
             return Future(function(*args))
 
-    def fake_run_job(config, *, data_source=None):
+    def fake_run_job(config, *, data_source=None, evidence=None):
         providers.append(data_source)
         return []
 
@@ -150,7 +183,7 @@ def test_serial_failure_does_not_contaminate_following_job(tmp_path, monkeypatch
     path.write_text(TASK.replace("missing: skip", "missing: fail"), encoding="utf-8")
     seen = []
 
-    def fake_run_job(config, *, data_source=None):
+    def fake_run_job(config, *, data_source=None, evidence=None):
         seen.append((config.time_config.forecast_time, data_source))
         if len(seen) == 1:
             raise RuntimeError("first job failed")

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor
+from dataclasses import asdict
 from multiprocessing import get_context
 from pathlib import Path
 from time import time
@@ -12,9 +13,10 @@ import pandas as pd
 import reki
 from cedar_graph.data import RekiProvider
 from cedarkit.plots.types import AreaRange
+from cedarkit.plots.workflow.runtime import PlanExecutionError
 
 from cemc_plots_kit.config import ExprConfig, JobConfig, PlotConfig, RuntimeConfig, TimeConfig
-from cemc_plots_kit.errors import classify_error
+from cemc_plots_kit.errors import classify_error, execution_cause, is_missing_error
 from cemc_plots_kit.job import get_output_image_file_name, run_job
 from cemc_plots_kit.manifest import write_manifest
 from cemc_plots_kit.task_plan import TaskPlan, build_task_plan
@@ -49,11 +51,13 @@ def _job_config(job: dict[str, Any], task: PlotTaskV2, plan: TaskPlan, source) -
     area = task.area.model_dump() if task.area is not None else None
     return JobConfig(
         expr_config=ExprConfig(source_spec=source.source,
-                               dataset_id=source.record.dataset_id,
+                               dataset_id=source.dataset_id,
                                area=AreaRange(**area) if area is not None else None),
         runtime_config=RuntimeConfig(work_dir=Path(runtime["work_dir"]), output_dir=Path(runtime["output_dir"])),
         time_config=TimeConfig(start_time=pd.Timestamp(task.time.start_time), forecast_time=pd.Timedelta(job["forecast_time"])),
-        plot_config=PlotConfig(plot_name=job["plot"], plot_params=job["params"], base_dir=Path(plan.document["task"]["file"]).parent),
+        plot_config=PlotConfig(plot_name=job["plot"], plot_params=job["params"],
+                               base_dir=Path(plan.document["task"]["file"]).parent,
+                               dataset_id=source.dataset_id, parameters=source.parameters),
     )
 
 
@@ -61,12 +65,18 @@ def _run_group(group: list[tuple[int, str, JobConfig]], provider, storage_base: 
     """Run a group against its already-owned provider."""
     results: list[tuple[int, dict[str, Any]]] = []
     for index, job_id, config in group:
+        evidence = {}
         try:
-            outputs = run_job(config, data_source=provider)
+            outputs = run_job(config, data_source=provider, evidence=evidence)
         except Exception as exc:
-            results.append((index, {"job_id": job_id, "status": "error", "is_missing": isinstance(exc, reki.DataNotFoundError), "code": classify_error(exc, storage_base=storage_base), "type": type(exc).__name__, "message": str(exc)}))
+            cause = execution_cause(exc)
+            detail = cause.to_dict() if isinstance(cause, (reki.QueryError, reki.SourceError, reki.CompletenessError)) else None
+            if isinstance(exc, PlanExecutionError):
+                evidence["workflow_error"] = {"node_id": exc.node_id, "recipe_identity": exc.recipe_identity,
+                                              "origin": exc.origin, "trace": [asdict(item) for item in exc.trace]}
+            results.append((index, {"job_id": job_id, "status": "error", "is_missing": is_missing_error(exc), "code": classify_error(exc, storage_base=storage_base), "type": type(exc).__name__, "message": str(exc), "detail": detail, **evidence}))
             break
-        results.append((index, {"job_id": job_id, "status": "success", "outputs": [str(path) for path in outputs]}))
+        results.append((index, {"job_id": job_id, "status": "success", "outputs": [str(path) for path in outputs], **evidence}))
     return results
 
 
@@ -97,10 +107,18 @@ def _check_output_collisions(jobs: list[tuple[int, dict[str, Any], JobConfig]]) 
 
 def _result_from_worker(item: dict[str, Any], missing: str) -> tuple[dict[str, Any], bool]:
     if item["status"] == "success":
-        return {"job_id": item["job_id"], "status": "success", "outputs": item["outputs"]}, False
+        return {"job_id": item["job_id"], "status": "success", "outputs": item["outputs"],
+                "provider_trace": item.get("provider_trace", [])}, False
     if item["is_missing"] and missing in {"skip", "warn"}:
-        return {"job_id": item["job_id"], "status": "skipped", "reason": item["code"], "warning": missing == "warn"}, False
-    return {"job_id": item["job_id"], "status": "failed", "error": {key: item[key] for key in ("code", "type", "message")}}, True
+        return {"job_id": item["job_id"], "status": "skipped", "reason": item["code"], "warning": missing == "warn",
+                "error": {key: item[key] for key in ("code", "type", "message", "detail") if item.get(key) is not None},
+                "provider_trace": item.get("provider_trace", []),
+                **({"workflow_error": item["workflow_error"]} if "workflow_error" in item else {})}, False
+    return {"job_id": item["job_id"], "status": "failed", "error": {
+        **{key: item[key] for key in ("code", "type", "message")},
+        **({"detail": item["detail"]} if item.get("detail") is not None else {})},
+        "provider_trace": item.get("provider_trace", []),
+        **({"workflow_error": item["workflow_error"]} if "workflow_error" in item else {})}, True
 
 
 def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
@@ -118,7 +136,7 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
         context = ExecutionContext(source, shared_reads=task.runtime.shared_reads, region=region)
         try:
             for index, job, config in executable:
-                record, failed = _result_from_worker(_run_group([(index, job["id"], config)], context.provider_for_job(), source.source.kwargs.get("storage_base"))[0][1], task.runtime.missing)
+                record, failed = _result_from_worker(_run_group([(index, job["id"], config)], context.provider_for_job(), source.source.get("root"))[0][1], task.runtime.missing)
                 by_index[index] = record
                 if failed:
                     fatal = True
@@ -131,7 +149,7 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
             with ProcessPoolExecutor(max_workers=min(task.runtime.workers, len(groups)), mp_context=get_context("spawn")) as pool:
                 region = task.area.model_dump() if task.area is not None else None
                 futures = [pool.submit(_run_worker_group, group, source.source, task.runtime.shared_reads,
-                                       source.source.kwargs.get("storage_base"), region) for group in groups]
+                                       source.source.get("root"), region) for group in groups]
                 try:
                     for group, future in zip(groups, futures):
                         try:
@@ -158,14 +176,20 @@ def run_task_spec(task: PlotTaskV2, *, task_file: Path) -> dict[str, Any]:
     results: list[dict[str, Any]] = []
     for index, job in enumerate(plan.document["jobs"]):
         if not job["executable"]:
-            results.append({"job_id": job["id"], "status": "skipped", "reason": job.get("skip_reason", job["issues"][0] if job["issues"] else "not_executable")})
+            if job["issues"]:
+                issue = next(item for item in plan.document["issues"] if item["job_id"] == job["id"])
+                results.append({"job_id": job["id"], "status": "failed", "error": {
+                    "code": issue["code"], "type": "TaskPlanError", "message": issue["message"]}})
+                fatal = True
+            else:
+                results.append({"job_id": job["id"], "status": "skipped", "reason": job.get("skip_reason", "not_executable")})
         elif index in by_index:
             results.append(by_index[index])
         else:
             results.append({"job_id": job["id"], "status": "not_run", "reason": "previous_job_failed"})
 
     status = "failed" if fatal else ("partial" if any(item["status"] == "skipped" for item in results) else "success")
-    document = {"api_version": "cemc.plots.manifest/v1", "task_plan_identity": plan.identity, "status": status, "duration_seconds": time() - started, "source": {"dataset_id": source.record.dataset_id, "catalog_origin": source.origin, "provider": source.source.name}, "sharing": sharing, "results": results}
+    document = {"api_version": "cemc.plots.manifest/v1", "task_plan_identity": plan.identity, "status": status, "duration_seconds": time() - started, "source": {"dataset_id": source.dataset_id, "catalog_origin": source.origin, "provider": source.source["kind"], "declaration": source.source, "definitions": list(source.definitions)}, "sharing": sharing, "results": results}
     manifest_path = Path(plan.document["runtime"]["output_dir"]) / "task-manifest.json"
     document["manifest_path"] = str(write_manifest(manifest_path, document))
     if fatal:

@@ -1,6 +1,7 @@
 import reki
+from cedarkit.plots.workflow.runtime import PlanExecutionError
 
-from cemc_plots_kit.errors import classify_error
+from cemc_plots_kit.errors import classify_error, is_missing_error
 
 
 def _error(name):
@@ -16,3 +17,20 @@ def test_classify_error_keeps_missing_ambiguity_and_runtime_categories_distinct(
     assert classify_error(_error("DecodeError")) == "decode_error"
     assert classify_error(_error("RenderError")) == "render_error"
     assert classify_error(_error("PublishError")) == "publish_error"
+
+
+def test_public_error_codes_do_not_hide_decode_or_service_failures():
+    assert is_missing_error(reki.QueryError("no_match"))
+    assert classify_error(reki.QueryError("no_match")) == "field_missing"
+    for error in (reki.SourceError("decode_failed"), reki.SourceError("service_error"),
+                  reki.QueryError("multiple_matches"), reki.SourceError("resource_not_found")):
+        code = error.code
+        assert not is_missing_error(error)
+        assert classify_error(error) == code
+        wrapped = PlanExecutionError("temperature", "cn.t2m", "recipe.yaml:12", str(error), cause=error)
+        assert not is_missing_error(wrapped)
+        assert classify_error(wrapped) == code
+    wrapped_missing = PlanExecutionError("temperature", "cn.t2m", "recipe.yaml:12", "missing",
+                                         cause=reki.QueryError("no_match"))
+    assert is_missing_error(wrapped_missing)
+    assert classify_error(wrapped_missing) == "field_missing"

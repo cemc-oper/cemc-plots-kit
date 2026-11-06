@@ -148,7 +148,8 @@ def _run_case(case, output_root, barrier=None):
     return {"pid": os.getpid(), "status": "success", "output": output.name,
             "pixels": pixels, "values": values, "content": content, "styles": styles,
             "requests": len(source.workflow_requests), "members": tuple(
-                request.key.query.member for request in source.workflow_requests),
+                (request.key.query.to_dict().get("member"), request.key.query.to_dict().get("member_role"))
+                for request in source.workflow_requests),
             "figures": before_figures, "trace": _trace_probe(area, case["name"])}
 
 
@@ -181,7 +182,7 @@ def test_reused_worker_and_parallel_workers_keep_task_state_isolated(tmp_path):
     assert sequential[0]["pixels"] != sequential[2]["pixels"]
     assert sequential[0]["styles"] != sequential[2]["styles"]
     assert sequential[3]["content"] == ("ctl", "m01", "m02", "max")
-    assert set(sequential[3]["members"]) == {"ctl", "m01", "m02"}
+    assert set(sequential[3]["members"]) == {(None, "control"), (1, None), (2, None)}
     assert all(item["requests"] == 1 for item in (sequential[0], sequential[2], sequential[-1]))
     for item in (sequential[0], sequential[2], sequential[3], sequential[-1]):
         trace = item["trace"]

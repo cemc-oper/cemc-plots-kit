@@ -1,6 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import pandas as pd
 import reki
@@ -14,8 +14,9 @@ class ExprConfig:
     """Data binding shared by every product in one task."""
 
     area: Optional[AreaRange] = None
-    source_spec: Optional[reki.SourceSpec] = None
+    source_spec: Optional[Union[reki.SourceSpec, Mapping[str, Any]]] = None
     dataset_id: Optional[str] = None
+    source_context: Optional[Mapping[str, Any]] = None
 
 
 @dataclass
@@ -68,6 +69,8 @@ class PlotConfig:
     plot_name: str
     plot_params: dict = field(default_factory=dict)
     base_dir: Optional[Union[str, Path]] = None
+    dataset_id: Optional[str] = None
+    parameters: Optional[Mapping[str, Any]] = None
 
 
 @dataclass

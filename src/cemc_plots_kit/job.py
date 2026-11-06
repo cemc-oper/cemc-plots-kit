@@ -1,5 +1,5 @@
 from pathlib import Path
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 import os
 from uuid import uuid4
 
@@ -17,7 +17,7 @@ from cemc_plots_kit.logger import get_logger
 job_logger = get_logger("job")
 
 
-def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
+def run_job(job_config: JobConfig, *, data_source=None, evidence=None) -> list[Path]:
     """
     Run a plot job, involves the following steps:
 
@@ -74,6 +74,7 @@ def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
 
     temporary_path = None
     owned_provider = None
+    trace_start = len(getattr(data_source, "trace", ()))
     try:
         job_logger.info(f"running plot job...")
         if data_source is None and isinstance(plot_definition, (WorkflowProduct, EnsembleT2MProduct)):
@@ -88,6 +89,12 @@ def run_job(job_config: JobConfig, *, data_source=None) -> list[Path]:
         panel.save(temporary_path)
         os.replace(temporary_path, output_image_file_path)
     finally:
+        if evidence is not None:
+            provider = owned_provider if owned_provider is not None else data_source
+            evidence["provider_trace"] = [
+                asdict(item) if is_dataclass(item) else dict(item)
+                for item in getattr(provider, "trace", ())[trace_start:]
+            ]
         if temporary_path is not None and temporary_path.exists():
             temporary_path.unlink()
         # This job owns only its own panel.  Closing all pyplot figures would
@@ -130,9 +137,11 @@ def create_data_source(expr_config: ExprConfig) -> RekiProvider:
     Kept as a separate function so tests can substitute a mock data source.
     """
     if expr_config.source_spec is None:
-        raise ValueError("a reki SourceSpec is required for v3 products")
-    return RekiProvider(expr_config.source_spec,
-                        region=asdict(expr_config.area) if expr_config.area is not None else None)
+        raise ValueError("a reki source declaration is required for v3 products")
+    kwargs = {"region": asdict(expr_config.area) if expr_config.area is not None else None}
+    if expr_config.source_context is not None:
+        kwargs["context"] = expr_config.source_context
+    return RekiProvider(expr_config.source_spec, **kwargs)
 
 
 def create_work_dir(job_config: JobConfig) -> Path:

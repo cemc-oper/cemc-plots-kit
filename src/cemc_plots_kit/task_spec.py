@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
 from typing import Any, Literal
@@ -46,10 +47,12 @@ class SourceConfig(StrictModel):
 
 class TimeConfigV2(StrictModel):
     start_time: str
+    forecast_start: str = "0 days 00:00:00"
     forecast_time: str
     forecast_interval: str
 
     _forecast_time = field_validator("forecast_time", mode="before")(_duration)
+    _forecast_start = field_validator("forecast_start", mode="before")(_duration)
     _forecast_interval = field_validator("forecast_interval", mode="before")(_duration)
 
     @field_validator("start_time", mode="before")
@@ -69,6 +72,8 @@ class TimeConfigV2(StrictModel):
             raise ValueError("forecast_interval must be greater than zero")
         if pd.Timedelta(self.forecast_interval) > pd.Timedelta(self.forecast_time):
             raise ValueError("forecast_interval cannot exceed forecast_time")
+        if pd.Timedelta(self.forecast_start) > pd.Timedelta(self.forecast_time):
+            raise ValueError("forecast_start cannot exceed forecast_time")
         return self
 
 
@@ -105,31 +110,51 @@ def mounted_catalog_path() -> Path:
     return Path(str(files("cemc_plots_kit").joinpath("catalog/cmadaas_mount.yaml")))
 
 
-def resolve_task_source(source: SourceConfig) -> reki.SourceSpec:
+@dataclass(frozen=True)
+class ResolvedTaskSource:
+    source: dict[str, Any]
+    dataset_id: str
+    origin: str
+    definitions: tuple[dict[str, Any], ...]
+    parameters: dict[str, Any]
+
+
+def resolve_task_source(source: SourceConfig) -> dict[str, Any]:
     """Resolve a mounted source without opening a provider or contacting a service."""
     return resolve_task_dataset(source).source
 
 
 def resolve_task_dataset(source: SourceConfig):
-    """Resolve the catalog record and apply a task-local storage override."""
-    catalog = reki.load_catalog(plugins=False, user=True, explicit=mounted_catalog_path())
+    """Bind the application's mount aliases to a public local declaration.
+
+    This is static resource validation, with no source construction or data I/O.
+    The application owns deployment aliases; reki owns product interpretation.
+    """
+    import yaml
+    from reki.catalog import plan_source_binding
+    from reki.catalog.model import thaw
+
+    catalog_path = mounted_catalog_path()
+    catalog = yaml.safe_load(catalog_path.read_text(encoding="utf-8"))
+    declaration = next(
+        (dict(row["source"]) for row in catalog["datasets"]
+         if source.dataset == row["id"] or source.dataset in row.get("aliases", [])),
+        {"kind": "local", "dataset": source.dataset},
+    )
+    root = source.overrides.get("storage_base")
+    if root is None:
+        raise TaskSpecError("source policy requires an explicit overrides.storage_base")
+    declaration["root"] = root
     try:
-        resolved = catalog.resolve(source.dataset)
-    except KeyError as exc:
-        raise TaskSpecError(f"source.dataset: unknown dataset {source.dataset!r}") from exc
-    spec = resolved.source
-    if spec.name != "local" or spec.kwargs.get("data_class") != "cmadaas":
-        raise TaskSpecError("source policy requires a local source with data_class=cmadaas")
-    kwargs = dict(spec.kwargs)
-    kwargs.update(source.overrides)
-    # Keep the resolved record/origin available to a diagnostic TaskPlan while
-    # replacing only the source construction arguments owned by the task.
-    from reki.catalog.model import ResolvedDataset
-    return ResolvedDataset(
-        record=resolved.record,
-        source=reki.SourceSpec(spec.name, spec.args, kwargs),
-        origin=resolved.origin,
-        replaced_origins=resolved.replaced_origins,
+        configuration = plan_source_binding(declaration)
+    except (reki.QueryError, reki.SourceError) as exc:
+        raise TaskSpecError(f"source policy: {exc}") from exc
+    return ResolvedTaskSource(
+        source=thaw(configuration.source),
+        dataset_id=configuration.source["dataset"],
+        origin=str(catalog_path),
+        definitions=tuple(thaw(item) for item in configuration.definitions),
+        parameters=thaw(configuration.parameters or {}),
     )
 
 

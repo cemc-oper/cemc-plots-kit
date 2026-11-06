@@ -82,8 +82,10 @@ def workflow_context(time_config: TimeConfig, plot_config: PlotConfig) -> Compil
         params.setdefault("pte_second_level", levels[1])
     if plot_config.plot_name == "cn.t2m" and "style_variant" not in params:
         params["style_variant"] = "cn_summer" if 5 <= time_config.start_time.month <= 9 else "cn_winter"
+    if plot_config.plot_name == "cn.t2m" and plot_config.dataset_id:
+        params.setdefault("model", plot_config.dataset_id)
     return CompileContext(start_time=time_config.start_time, forecast_time=time_config.forecast_time,
-                          params=params)
+                          params=params, parameters=plot_config.parameters)
 
 
 def get_plot_label(plot_name: str, plot_params: Optional[dict] = None) -> str:

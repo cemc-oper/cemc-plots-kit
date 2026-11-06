@@ -1,0 +1,18 @@
+api_version: cemc.plots/v2
+kind: PlotTask
+source:
+  dataset: cma_gfs_gmf_cmadaas_mount
+  overrides: {storage_base: /CMADAAS}
+time:
+  start_time: "2026110212"
+  forecast_start: 6h
+  forecast_time: 6h
+  forecast_interval: 6h
+runtime:
+  work_dir: ./work-gfs-t2m
+  output_dir: ./output-gfs-t2m
+  missing: fail
+  workers: 1
+  shared_reads: true
+plots:
+  cn.t2m: {style_variant: cn_summer}

@@ -35,8 +35,20 @@ def test_v2_task_normalizes_duration_and_resolves_local_mount(tmp_path):
     assert task.time.start_time == "202607160000"
     assert task.time.forecast_time == "1 days 00:00:00"
     source = resolve_task_source(task.source)
-    assert source.name == "local"
-    assert source.kwargs == {"data_class": "cmadaas", "storage_base": "/CMADAAS"}
+    assert source == {"kind": "local", "dataset": "cma_gfs_gmf", "root": "/CMADAAS"}
+
+
+def test_canonical_local_dataset_needs_no_application_alias(tmp_path):
+    path = tmp_path / "task.yaml"
+    path.write_text(V2_TASK.replace("cma_gfs_gmf_cmadaas_mount", "cma_gfs_gmf"))
+    assert resolve_task_source(load_task_spec(path).source)["dataset"] == "cma_gfs_gmf"
+
+
+def test_forecast_start_must_not_exceed_end(tmp_path):
+    path = tmp_path / "task.yaml"
+    path.write_text(V2_TASK.replace("forecast_time: 24h", "forecast_start: 30h\n  forecast_time: 24h"))
+    with pytest.raises(TaskSpecError, match="forecast_start cannot exceed"):
+        load_task_spec(path)
 
 
 def test_remote_dataset_fails_policy_before_provider_io(tmp_path):
