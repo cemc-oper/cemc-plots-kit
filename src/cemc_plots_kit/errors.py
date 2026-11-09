@@ -19,7 +19,7 @@ def execution_cause(error: Exception) -> Exception:
 def is_missing_error(error: Exception) -> bool:
     """Business absence only; access, decode and service failures remain errors."""
     error = execution_cause(error)
-    return isinstance(error, (reki.DataNotFoundError, MissingMemberError)) or (
+    return isinstance(error, MissingMemberError) or (
         isinstance(error, (reki.QueryError, reki.SourceError, reki.CompletenessError))
         and error.code in {"no_match", "missing_fields"}
     )
@@ -32,8 +32,6 @@ def classify_error(error: Exception, *, storage_base: str | None = None) -> str:
         return "field_missing"
     if isinstance(error, (reki.QueryError, reki.SourceError, reki.CompletenessError)):
         return error.code
-    if isinstance(error, reki.MultipleFieldsMatchedError):
-        return "multiple_fields"
     if isinstance(error, FileNotFoundError):
         if storage_base and not Path(storage_base).exists():
             return "mount_missing"

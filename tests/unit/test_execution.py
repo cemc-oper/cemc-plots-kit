@@ -25,13 +25,13 @@ plots: {cn.t2m: true}
 
 
 def test_owned_provider_receives_task_area_without_modifying_source():
-    source = reki.SourceSpec("local", args=("synthetic",))
+    source = {"kind": "local", "dataset": "cma_gfs_gmf", "root": "/tmp"}
     area = AreaRange(95, 125, 20, 45)
     provider = create_data_source(ExprConfig(area=area, source_spec=source))
     try:
         assert provider.region == {"start_longitude": 95, "end_longitude": 125,
                                    "start_latitude": 20, "end_latitude": 45}
-        assert source.kwargs == {}
+        assert source == {"kind": "local", "dataset": "cma_gfs_gmf", "root": "/tmp"}
     finally:
         provider.close()
 
@@ -72,7 +72,7 @@ def test_missing_field_is_skipped_and_recorded(tmp_path, monkeypatch):
     path.write_text(TASK, encoding="utf-8")
     monkeypatch.setattr(
         "cemc_plots_kit.execution.run_job",
-        lambda config, **kwargs: (_ for _ in ()).throw(reki.DataNotFoundError(reki.FieldQuery(parameter="t2m"))),
+        lambda config, **kwargs: (_ for _ in ()).throw(reki.QueryError("no_match")),
     )
     result = run_task_spec(load_task_spec(path), task_file=path)
     assert result["status"] == "partial"

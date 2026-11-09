@@ -31,7 +31,7 @@ dependencies = [
     "pydantic>=2,<3",
     # Keep the wind style, model parameter and public source contract together.
     "cedarkit-plots>=2026.9.1.dev42",
-    "cedar-graph>=2026.9.1.dev22",
+    "cedar-graph>=2026.9.1.dev23",
     "reki>=2026.9.1.dev100",
 ]
 

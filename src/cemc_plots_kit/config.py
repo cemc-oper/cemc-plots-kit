@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional, Union
 
 import pandas as pd
-import reki
 
 
 from cedarkit.plots.types import AreaRange
@@ -14,7 +13,7 @@ class ExprConfig:
     """Data binding shared by every product in one task."""
 
     area: Optional[AreaRange] = None
-    source_spec: Optional[Union[reki.SourceSpec, Mapping[str, Any]]] = None
+    source_spec: Optional[Mapping[str, Any]] = None
     dataset_id: Optional[str] = None
     source_context: Optional[Mapping[str, Any]] = None
 

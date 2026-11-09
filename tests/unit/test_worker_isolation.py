@@ -45,19 +45,23 @@ def _trace_probe(area, label):
     field = xr.DataArray([[273.15]], dims=("latitude", "longitude"),
                          coords={"latitude": [30.0], "longitude": [110.0]}, attrs={"units": "K"})
 
-    class Reader:
-        def sel(self, query):
-            return self
-
-        def one(self):
-            return self
-
-        def to_xarray(self):
-            return field
-
-    original = reki.from_source
-    reki.from_source = lambda *args, **kwargs: Reader()
-    provider = RekiProvider(reki.SourceSpec("local", args=("synthetic",)), region=area)
+    import tempfile
+    import eccodes
+    temporary = tempfile.TemporaryDirectory()
+    source_path = Path(temporary.name)/"t2m.grib2"
+    message = eccodes.codes_grib_new_from_samples("regular_ll_sfc_grib2")
+    try:
+        for key,value in {"centre":38,"subCentre":0,"tablesVersion":4,"localTablesVersion":0,
+                          "dataDate":20240701,"dataTime":0,"forecastTime":24,
+                          "typeOfLevel":"heightAboveGround","level":2,
+                          "Ni":2,"Nj":2,"latitudeOfFirstGridPointInDegrees":31,
+                          "latitudeOfLastGridPointInDegrees":30,"longitudeOfFirstGridPointInDegrees":110,
+                          "longitudeOfLastGridPointInDegrees":111,"iDirectionIncrementInDegrees":1,
+                          "jDirectionIncrementInDegrees":1}.items():eccodes.codes_set(message,key,value)
+        eccodes.codes_set_values(message,np.full(4,273.15))
+        source_path.write_bytes(eccodes.codes_get_message(message))
+    finally:eccodes.codes_release(message)
+    provider = RekiProvider({"kind":"file","path":str(source_path),"dataset":"cma_gfs_gmf"}, region=area)
     try:
         plan = select_workflow_product("cn.t2m").compile(
             workflow_context(TimeConfig(pd.Timestamp("2024-07-01"), pd.Timedelta("24h")),
@@ -70,7 +74,7 @@ def _trace_probe(area, label):
                     "trace": [(item.node_id, item.status) for item in provider.trace]}
     finally:
         provider.close()
-        reki.from_source = original
+        temporary.cleanup()
     evidence["closed_entries"] = provider.cache_info["entries"]
     evidence["closed_trace"] = len(provider.trace)
     return evidence
@@ -189,7 +193,8 @@ def test_reused_worker_and_parallel_workers_keep_task_state_isolated(tmp_path):
         assert trace["region"] == AREAS["east" if item is sequential[0] or item is sequential[-1] else "china"]
         assert trace["cache"] == {"hits": 1, "misses": 1, "entries": 1}
         assert [status for _, status in trace["trace"]] == ["ok", "cached"]
-        assert trace["closed_entries"] == trace["closed_trace"] == 0
+        assert trace["closed_entries"] == 0
+        assert trace["closed_trace"] == 2
 
     with context.Manager() as manager:
         barrier = manager.Barrier(3)
