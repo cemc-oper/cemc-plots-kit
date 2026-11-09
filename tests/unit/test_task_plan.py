@@ -85,7 +85,7 @@ def test_ensemble_plan_uses_member_product_definitions(tmp_path, monkeypatch):
     assert all(job["plot_plan"]["max_input_ids"] == ["m01", "m02", "ctl"]
                for job in plan["jobs"])
     assert {(item["request"]["query"].get("member"), item["request"]["query"].get("member_role"))
-            for item in plan["requests"]} == {(None, "control"), (1, None), (2, None)}
+            for item in plan["requests"]} == {(None, "control"), (1, "perturbation"), (2, "perturbation")}
 
 
 def test_external_v3_recipe_uses_same_plan_as_execution(tmp_path):

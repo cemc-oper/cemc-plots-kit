@@ -85,7 +85,7 @@ def run_job(job_config: JobConfig, *, data_source=None, evidence=None) -> list[P
             owned_provider = create_data_source(expr_config=job_config.expr_config)
         panel = run_plot(plot_definition=plot_definition, job_config=job_config,
                          data_source=owned_provider if owned_provider is not None else data_source,
-                         timings=timings)
+                         timings=timings, evidence=evidence)
 
         job_logger.info(f"saving output image... {output_image_file_path}")
         temporary_path = output_image_file_path.with_name(
@@ -118,7 +118,7 @@ def run_job(job_config: JobConfig, *, data_source=None, evidence=None) -> list[P
     return [output_image_file_path]
 
 
-def run_plot(plot_definition, job_config: JobConfig, *, data_source=None, timings=None) -> Panel:
+def run_plot(plot_definition, job_config: JobConfig, *, data_source=None, timings=None, evidence=None) -> Panel:
     """Run one selected v3 product with a caller or job-owned provider."""
     expr_config = job_config.expr_config
     time_config = job_config.time_config
@@ -126,10 +126,20 @@ def run_plot(plot_definition, job_config: JobConfig, *, data_source=None, timing
 
     if isinstance(plot_definition, EnsembleT2MProduct):
         provider = data_source if data_source is not None else create_data_source(expr_config=expr_config)
+        prepare_started = perf_counter()
         prepared = plot_definition.prepare(provider, start_time=time_config.start_time,
                                            forecast_time=time_config.forecast_time,
                                            request=EnsembleRequest.from_params(plot_config.plot_params))
-        return prepared.render()
+        if timings is not None:
+            timings["prepare_seconds"] = perf_counter() - prepare_started
+        if evidence is not None:
+            evidence["ensemble"] = prepared.summary()
+        render_started = perf_counter()
+        try:
+            return prepared.render()
+        finally:
+            if timings is not None:
+                timings["render_seconds"] = perf_counter() - render_started
 
     if isinstance(plot_definition, WorkflowProduct):
         provider = data_source if data_source is not None else create_data_source(expr_config=expr_config)

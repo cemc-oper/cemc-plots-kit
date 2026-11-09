@@ -217,7 +217,7 @@ class TestRunJob:
         assert outputs[0].exists() and outputs[0].stat().st_size > 0
         assert "member_ids_m01-m02" in outputs[0].name
         assert {(request.key.query.to_dict().get("member"), request.key.query.to_dict().get("member_role"))
-                for request in source.workflow_requests} == {(None, "control"), (1, None), (2, None)}
+                for request in source.workflow_requests} == {(None, "control"), (1, "perturbation"), (2, "perturbation")}
 
     def test_run_job_external_recipe(self, mock_data_source, tmp_path, start_time, forecast_time, system_name):
         recipe_path = tmp_path / "t2m_custom.yaml"
@@ -232,3 +232,15 @@ class TestRunJob:
 
 
 from test_plots import EXTERNAL_RECIPE
+
+
+def test_member_absence_is_a_missing_field_and_ensemble_summary_survives_worker_result():
+    from cedar_graph.recipes.ensemble_product import MissingMemberError
+    from cemc_plots_kit.errors import classify_error, is_missing_error
+    from cemc_plots_kit.execution import _result_from_worker
+    assert is_missing_error(MissingMemberError('m002'))
+    assert classify_error(MissingMemberError('m002')) == 'field_missing'
+    summary = {'max_input_ids': ['m001'], 'max_realized_input_count': 1}
+    result, failed = _result_from_worker({'status': 'success', 'job_id': 'ensemble',
+        'outputs': [], 'ensemble': summary}, 'fail')
+    assert not failed and result['ensemble'] == summary

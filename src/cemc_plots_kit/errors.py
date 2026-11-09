@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import reki
+from cedar_graph.recipes.ensemble_product import MissingMemberError
 from cedarkit.plots.workflow.runtime import PlanExecutionError
 
 
@@ -18,7 +19,7 @@ def execution_cause(error: Exception) -> Exception:
 def is_missing_error(error: Exception) -> bool:
     """Business absence only; access, decode and service failures remain errors."""
     error = execution_cause(error)
-    return isinstance(error, reki.DataNotFoundError) or (
+    return isinstance(error, (reki.DataNotFoundError, MissingMemberError)) or (
         isinstance(error, (reki.QueryError, reki.SourceError, reki.CompletenessError))
         and error.code in {"no_match", "missing_fields"}
     )

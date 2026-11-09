@@ -123,3 +123,29 @@ cedarkit-plots recipe plan examples/recipes/t2m_custom.yaml \
 ```
 
 任务示例及其 CLI 命令见 [`../examples/README.md`](../examples/README.md)。
+
+## Ensemble temperature population records
+
+For `cn.ens_t2m`, `member_ids` select perturbations and `control_id` selects the
+control. `model` supplies the figure label. Member reads carry explicit roles,
+and aliases selecting the same native member are rejected before execution.
+`include_control_in_max` controls whether the control contributes to MAX.
+
+The manifest result contains `ensemble` with requested/realized/missing IDs,
+control inclusion, `max_input_ids`, requested and realized MAX input counts, and
+the minimum/maximum per-grid valid input count. MAX is a pointwise maximum over
+the selected inputs, not a probability computed over the full model population.
+An absent member under the product's `missing_policy: skip` can produce a valid
+partial product; its effective count and missing IDs stay visible. Grid-point
+NaNs do not count as valid inputs, and all-missing points remain NaN.
+
+The task-level `runtime.missing` policy still controls missing jobs. Member
+absence under the product's `error` policy is classified as `field_missing` with
+the read-node cause. Ambiguity, inconsistent identities/grids, a required missing
+control and an empty realized member set remain failures; they are not silently
+converted into a smaller ensemble.
+
+N09D freezes CMA-GEPS 2026-11-02 12 UTC +24h, control 0 and perturbations 1–3.
+The original header declares 31 ensemble forecasts; this selected subset does
+not establish a complete 31-member population. Exact candidate installation and
+whole-cohort restoration are accepted separately in N10E.

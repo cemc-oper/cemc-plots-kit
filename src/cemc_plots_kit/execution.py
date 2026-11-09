@@ -122,17 +122,20 @@ def _result_from_worker(item: dict[str, Any], missing: str) -> tuple[dict[str, A
         return {"job_id": item["job_id"], "status": "success", "outputs": item["outputs"],
                 "outputs_info": output_information(item["outputs"]),
                 "provider_trace": item.get("provider_trace", []),
+                **({"ensemble": item["ensemble"]} if "ensemble" in item else {}),
                 **({"timings": item["timings"]} if "timings" in item else {})}, False
     if item["is_missing"] and missing in {"skip", "warn"}:
         return {"job_id": item["job_id"], "status": "skipped", "reason": item["code"], "warning": missing == "warn",
                 "error": {key: item[key] for key in ("code", "type", "message", "detail") if item.get(key) is not None},
                 "provider_trace": item.get("provider_trace", []),
+                **({"ensemble": item["ensemble"]} if "ensemble" in item else {}),
                 **({"timings": item["timings"]} if "timings" in item else {}),
                 **({"workflow_error": item["workflow_error"]} if "workflow_error" in item else {})}, False
     return {"job_id": item["job_id"], "status": "failed", "error": {
         **{key: item[key] for key in ("code", "type", "message")},
         **({"detail": item["detail"]} if item.get("detail") is not None else {})},
         "provider_trace": item.get("provider_trace", []),
+        **({"ensemble": item["ensemble"]} if "ensemble" in item else {}),
         **({"timings": item["timings"]} if "timings" in item else {}),
         **({"workflow_error": item["workflow_error"]} if "workflow_error" in item else {})}, True
 

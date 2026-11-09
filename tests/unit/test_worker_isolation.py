@@ -182,7 +182,7 @@ def test_reused_worker_and_parallel_workers_keep_task_state_isolated(tmp_path):
     assert sequential[0]["pixels"] != sequential[2]["pixels"]
     assert sequential[0]["styles"] != sequential[2]["styles"]
     assert sequential[3]["content"] == ("ctl", "m01", "m02", "max")
-    assert set(sequential[3]["members"]) == {(None, "control"), (1, None), (2, None)}
+    assert set(sequential[3]["members"]) == {(None, "control"), (1, "perturbation"), (2, "perturbation")}
     assert all(item["requests"] == 1 for item in (sequential[0], sequential[2], sequential[-1]))
     for item in (sequential[0], sequential[2], sequential[3], sequential[-1]):
         trace = item["trace"]
