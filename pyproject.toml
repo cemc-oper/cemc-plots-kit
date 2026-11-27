@@ -29,9 +29,9 @@ dependencies = [
     "typer",
     "PyYAML",
     "pydantic>=2,<3",
-    # Keep the wind style, model parameter and public source contract together.
-    "cedarkit-plots>=2026.9.1.dev42",
-    "cedar-graph>=2026.9.1.dev23",
+    # Use the v3 plotting and product releases together.
+    "cedarkit-plots>=2026.11.0",
+    "cedar-graph>=2026.11.0",
     "reki>=2026.11.0",
 ]
 
