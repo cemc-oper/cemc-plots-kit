@@ -70,6 +70,17 @@ class TestGetPlotDefinition:
         assert summer.content.charts[0].plots[0].style == "cemc.t2m:cn_summer"
         assert winter.content.charts[0].plots[0].style == "cemc.t2m:cn_winter"
 
+    def test_t2m_explicit_variant_and_model_win_over_november_defaults(self):
+        time = TimeConfig(pd.Timestamp("2026-11-02T12:00Z"), pd.Timedelta("6h"))
+        product = get_plot_definition("cn.t2m")
+        default = product.compile(workflow_context(time, PlotConfig("cn.t2m", model_name="CMA-GFS")))
+        assert default.content.charts[0].plots[0].style == "cemc.t2m:cn_winter"
+        override = product.compile(workflow_context(time, PlotConfig(
+            "cn.t2m", plot_params={"style_variant": "cn_summer", "model": "Example"}, model_name="CMA-GFS",
+        )))
+        assert override.content.charts[0].plots[0].style == "cemc.t2m:cn_summer"
+        assert {title.id: title.text for title in override.content.charts[0].titles}["model"] == "Example"
+
     def test_ensemble_product_selection(self):
         assert isinstance(get_plot_definition("cn.ens_t2m"), EnsembleT2MProduct)
 

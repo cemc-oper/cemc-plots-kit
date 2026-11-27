@@ -59,7 +59,7 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
     Workflow 编译时检查时效约束；集合参数静态验证。
     """
     if isinstance(plot_definition, EnsembleT2MProduct):
-        EnsembleRequest.from_params(plot_config.plot_params)
+        ensemble_request(plot_config)
         return True
     if isinstance(plot_definition, WorkflowProduct):
         try:
@@ -70,6 +70,13 @@ def check_plot_available(plot_definition, time_config: TimeConfig, plot_config: 
             raise
         return True
     raise TypeError("plot definition must be a v3 product")
+
+
+def ensemble_request(plot_config: PlotConfig) -> EnsembleRequest:
+    params = dict(plot_config.plot_params)
+    if plot_config.model_name:
+        params.setdefault("model", plot_config.model_name)
+    return EnsembleRequest.from_params(params)
 
 
 def workflow_context(time_config: TimeConfig, plot_config: PlotConfig) -> CompileContext:

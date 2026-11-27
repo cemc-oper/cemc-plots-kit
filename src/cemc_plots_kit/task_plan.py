@@ -11,8 +11,8 @@ from typing import Any
 import pandas as pd
 
 from cemc_plots_kit.config import PlotConfig, TimeConfig
-from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
-                                  check_plot_available, get_plot_definition, workflow_context)
+from cemc_plots_kit.plots import (EnsembleT2MProduct, WorkflowProduct, check_plot_available,
+                                  ensemble_request, get_plot_definition, workflow_context)
 from cemc_plots_kit.task_config import parse_plots_config
 from cemc_plots_kit.task_spec import PlotTaskV2, resolve_task_dataset
 
@@ -90,13 +90,14 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
                 continue
             try:
                 if isinstance(definition, EnsembleT2MProduct):
-                    request = EnsembleRequest.from_params(params)
+                    request = ensemble_request(plot_config)
                     member_plans = definition.compile_members(
                         start_time=start_time, forecast_time=forecast_time, request=request)
                     plot_plan = {"product": definition.name, "member_plans": {
                         member_id: member_plan.to_dict() for member_id, member_plan in member_plans.items()},
                         "max_input_ids": list(request.member_ids) + (
                             [request.control_id] if request.include_control_in_max else []),
+                        "model": request.model,
                         "missing_policy": request.missing_policy}
                     plans_to_group = [(member_id, member_plan.to_dict())
                                       for member_id, member_plan in member_plans.items()]

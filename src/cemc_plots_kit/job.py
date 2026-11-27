@@ -11,7 +11,7 @@ from cedar_graph.data import RekiProvider
 from cedarkit.plots.workflow.render import WorkflowRenderError, render_result
 
 from cemc_plots_kit.config import JobConfig, ExprConfig
-from cemc_plots_kit.plots import (EnsembleRequest, EnsembleT2MProduct, WorkflowProduct,
+from cemc_plots_kit.plots import (EnsembleT2MProduct, WorkflowProduct, ensemble_request,
                                   get_plot_definition, get_plot_label, workflow_context)
 from cemc_plots_kit.logger import get_logger
 
@@ -129,7 +129,7 @@ def run_plot(plot_definition, job_config: JobConfig, *, data_source=None, timing
         prepare_started = perf_counter()
         prepared = plot_definition.prepare(provider, start_time=time_config.start_time,
                                            forecast_time=time_config.forecast_time,
-                                           request=EnsembleRequest.from_params(plot_config.plot_params))
+                                           request=ensemble_request(plot_config))
         if timings is not None:
             timings["prepare_seconds"] = perf_counter() - prepare_started
         if evidence is not None:

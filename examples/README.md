@@ -8,6 +8,7 @@
 - [`task-v2-gfs-wind-10m.yaml`](task-v2-gfs-wind-10m.yaml)：冻结的 CMA-GFS
   2026-11-02 12 UTC、+6h 10 m 风；原始分量与风速保持 m/s，风羽半羽／全羽／旗标
   分别为 2／4／20 m/s。使用独立 work／output 目录和 `missing: fail`。
+- `task-v2-gfs-layout-validation.yaml` 在 CMA-GFS 2026-11-02 12 UTC 的 +6 h 时次验证版式。任务比较显式夏季色阶、显式及默认冬季色阶，并复跑 500 hPa 高度与海平面气压叠加图。 [冻结任务](task-v2-gfs-layout-validation.yaml)
 - [`task-v2-ensemble.yaml`](task-v2-ensemble.yaml)：CMA-GEPS 集合温度，示例成员为
   `m001`、`m002`，control 为 `m000`，并让 control 参与 MAX。
 - [`recipes/t2m_custom.yaml`](recipes/t2m_custom.yaml)：外部 v3 温度 recipe。
