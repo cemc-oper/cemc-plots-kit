@@ -17,21 +17,28 @@ api_version: cemc.plots/v2
 kind: PlotTask
 source:
   dataset: cma_gfs_gmf_cmadaas_mount
-  overrides: {storage_base: /CMADAAS}
+  overrides: {storage_base: <storage_base>}
 time: {start_time: 2026071600, forecast_time: 24h, forecast_interval: 24h}
 runtime: {work_dir: work, output_dir: output, missing: skip}
 plots: {cn.t2m: true}
 """
 
 
-def test_owned_provider_receives_task_area_without_modifying_source():
-    source = {"kind": "local", "dataset": "cma_gfs_gmf", "root": "/tmp"}
+@pytest.fixture
+def task_yaml(tmp_path):
+    storage_base = tmp_path / "archive"
+    storage_base.mkdir()
+    return TASK.replace("<storage_base>", json.dumps(str(storage_base)))
+
+
+def test_owned_provider_receives_task_area_without_modifying_source(tmp_path):
+    source = {"kind": "local", "dataset": "cma_gfs_gmf", "root": str(tmp_path)}
     area = AreaRange(95, 125, 20, 45)
     provider = create_data_source(ExprConfig(area=area, source_spec=source))
     try:
         assert provider.region == {"start_longitude": 95, "end_longitude": 125,
                                    "start_latitude": 20, "end_latitude": 45}
-        assert source == {"kind": "local", "dataset": "cma_gfs_gmf", "root": "/tmp"}
+        assert source == {"kind": "local", "dataset": "cma_gfs_gmf", "root": str(tmp_path)}
     finally:
         provider.close()
 
@@ -47,9 +54,9 @@ def test_manifest_replace_failure_cleans_temp_and_preserves_previous(tmp_path, m
     assert list(tmp_path.glob(".task-manifest.json.*.tmp")) == []
 
 
-def test_serial_run_writes_atomic_manifest(tmp_path, monkeypatch):
+def test_serial_run_writes_atomic_manifest(tmp_path, monkeypatch, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK, encoding="utf-8")
+    path.write_text(task_yaml, encoding="utf-8")
 
     def fake_run_job(config, **kwargs):
         output = config.runtime_config.output_dir / (config.plot_config.plot_name.replace(".", "_") + ".png")
@@ -67,9 +74,9 @@ def test_serial_run_writes_atomic_manifest(tmp_path, monkeypatch):
     assert not list(manifest.parent.glob(".*.tmp"))
 
 
-def test_missing_field_is_skipped_and_recorded(tmp_path, monkeypatch):
+def test_missing_field_is_skipped_and_recorded(tmp_path, monkeypatch, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK, encoding="utf-8")
+    path.write_text(task_yaml, encoding="utf-8")
     monkeypatch.setattr(
         "cemc_plots_kit.execution.run_job",
         lambda config, **kwargs: (_ for _ in ()).throw(reki.QueryError("no_match")),
@@ -80,9 +87,9 @@ def test_missing_field_is_skipped_and_recorded(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("missing", [True, False])
-def test_workflow_read_errors_keep_root_detail_and_node(tmp_path, monkeypatch, missing):
+def test_workflow_read_errors_keep_root_detail_and_node(tmp_path, monkeypatch, missing, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK)
+    path.write_text(task_yaml, encoding="utf-8")
     cause = reki.QueryError("no_match") if missing else reki.SourceError("decode_failed")
 
     def failing_job(config, **kwargs):
@@ -101,9 +108,9 @@ def test_workflow_read_errors_keep_root_detail_and_node(tmp_path, monkeypatch, m
         assert item["workflow_error"]["node_id"] == "temperature"
 
 
-def test_recipe_errors_fail_even_when_missing_is_skip(tmp_path):
+def test_recipe_errors_fail_even_when_missing_is_skip(tmp_path, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK.replace("cn.t2m: true", "cn.unknown: true"))
+    path.write_text(task_yaml.replace("cn.t2m: true", "cn.unknown: true"), encoding="utf-8")
     with pytest.raises(TaskExecutionError, match="recipe_error"):
         run_task_spec(load_task_spec(path), task_file=path)
     manifest = json.loads((tmp_path / "output/task-manifest.json").read_text())
@@ -111,9 +118,9 @@ def test_recipe_errors_fail_even_when_missing_is_skip(tmp_path):
     assert {item["error"]["code"] for item in manifest["results"]} == {"recipe_error"}
 
 
-def test_shared_reads_reuses_one_provider_and_can_be_disabled(tmp_path, monkeypatch):
+def test_shared_reads_reuses_one_provider_and_can_be_disabled(tmp_path, monkeypatch, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK, encoding="utf-8")
+    path.write_text(task_yaml, encoding="utf-8")
     providers = []
 
     def fake_run_job(config, *, data_source=None, evidence=None):
@@ -127,15 +134,15 @@ def test_shared_reads_reuses_one_provider_and_can_be_disabled(tmp_path, monkeypa
     assert shared["sharing"]["shared_reads"] is True
 
     providers.clear()
-    path.write_text(TASK.replace("missing: skip", "missing: skip, shared_reads: false"), encoding="utf-8")
+    path.write_text(task_yaml.replace("missing: skip", "missing: skip, shared_reads: false"), encoding="utf-8")
     unshared = run_task_spec(load_task_spec(path), task_file=path)
     assert providers == [None, None]
     assert unshared["sharing"]["shared_reads"] is False
 
 
-def test_multiple_workers_rebuild_providers_and_keep_result_order(tmp_path, monkeypatch):
+def test_multiple_workers_rebuild_providers_and_keep_result_order(tmp_path, monkeypatch, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK.replace("missing: skip", "missing: skip, workers: 2"), encoding="utf-8")
+    path.write_text(task_yaml.replace("missing: skip", "missing: skip, workers: 2"), encoding="utf-8")
     providers = []
 
     class Future:
@@ -178,9 +185,9 @@ def test_multiple_workers_rebuild_providers_and_keep_result_order(tmp_path, monk
     assert result["sharing"]["worker_groups"] == 2
 
 
-def test_serial_failure_does_not_contaminate_following_job(tmp_path, monkeypatch):
+def test_serial_failure_does_not_contaminate_following_job(tmp_path, monkeypatch, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK.replace("missing: skip", "missing: fail"), encoding="utf-8")
+    path.write_text(task_yaml.replace("missing: skip", "missing: fail"), encoding="utf-8")
     seen = []
 
     def fake_run_job(config, *, data_source=None, evidence=None):
@@ -198,9 +205,9 @@ def test_serial_failure_does_not_contaminate_following_job(tmp_path, monkeypatch
     assert seen[0][1].cache_info["entries"] == 0
 
 
-def test_worker_failure_keeps_later_future_and_region_local(tmp_path, monkeypatch):
+def test_worker_failure_keeps_later_future_and_region_local(tmp_path, monkeypatch, task_yaml):
     path = tmp_path / "task.yaml"
-    path.write_text(TASK.replace("missing: skip", "missing: fail, workers: 2") +
+    path.write_text(task_yaml.replace("missing: skip", "missing: fail, workers: 2") +
                     "area: {start_longitude: 95, end_longitude: 125, start_latitude: 20, end_latitude: 45}\n",
                     encoding="utf-8")
     seen = []
