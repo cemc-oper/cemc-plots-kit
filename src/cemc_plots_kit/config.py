@@ -70,6 +70,7 @@ class PlotConfig:
     base_dir: Optional[Union[str, Path]] = None
     dataset_id: Optional[str] = None
     parameters: Optional[Mapping[str, Any]] = None
+    model_name: Optional[str] = None
 
 
 @dataclass

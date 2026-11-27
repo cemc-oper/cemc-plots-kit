@@ -8,21 +8,22 @@ datasets:
     metadata:
       provider: cmadaas-mounted-grib
       display_name: CMA-GFS from CMADAAS mounted GRIB
+      model_name: CMA-GFS
   - id: cma_meso_3km_cmadaas_mount
     aliases: [CMA-MESO-3KM-CMADAAS-MOUNT]
     source:
       kind: local
       dataset: cma_meso_3km
-    metadata: {provider: cmadaas-mounted-grib}
+    metadata: {provider: cmadaas-mounted-grib, model_name: CMA-MESO}
   - id: cma_tym_cmadaas_mount
     aliases: [CMA-TYM-CMADAAS-MOUNT]
     source:
       kind: local
       dataset: cma_tym
-    metadata: {provider: cmadaas-mounted-grib}
+    metadata: {provider: cmadaas-mounted-grib, model_name: CMA-TYM}
   - id: cma_geps_perturbation_cmadaas_mount
     aliases: [CMA-GEPS-PERTURBATION-CMADAAS-MOUNT]
     source:
       kind: local
       dataset: cma_geps
-    metadata: {provider: cmadaas-mounted-grib, member_required: true, example_product: cn.ens_t2m}
+    metadata: {provider: cmadaas-mounted-grib, model_name: CMA-GEPS, member_required: true, example_product: cn.ens_t2m}

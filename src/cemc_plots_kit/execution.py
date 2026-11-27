@@ -66,7 +66,8 @@ def _job_config(job: dict[str, Any], task: PlotTaskV2, plan: TaskPlan, source) -
         time_config=TimeConfig(start_time=pd.Timestamp(task.time.start_time), forecast_time=pd.Timedelta(job["forecast_time"])),
         plot_config=PlotConfig(plot_name=job["plot"], plot_params=job["params"],
                                base_dir=Path(plan.document["task"]["file"]).parent,
-                               dataset_id=source.dataset_id, parameters=source.parameters),
+                               dataset_id=source.dataset_id, parameters=source.parameters,
+                               model_name=source.model_name),
     )
 
 

@@ -69,13 +69,17 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
     for forecast_time in forecast_times:
         for plot_name, params in parse_plots_config(task.plots):
             job_id = f"{plot_name}:{forecast_time.isoformat()}:{_identity(params)[:12]}"
+            time_config = TimeConfig(start_time=start_time, forecast_time=forecast_time)
+            plot_config = PlotConfig(
+                plot_name=plot_name, plot_params=params, base_dir=base_dir,
+                dataset_id=source.dataset_id, parameters=source.parameters, model_name=source.model_name,
+            )
             try:
                 definition = get_plot_definition(plot_name, base_dir=base_dir)
                 available = check_plot_available(
                     definition,
-                    time_config=TimeConfig(start_time=start_time, forecast_time=forecast_time),
-                    plot_config=PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir,
-                                           dataset_id=source.dataset_id, parameters=source.parameters),
+                    time_config=time_config,
+                    plot_config=plot_config,
                 )
             except Exception as exc:
                 issues.append({"code": "recipe_error", "job_id": job_id, "message": str(exc)})
@@ -97,10 +101,7 @@ def build_task_plan(task: PlotTaskV2, *, task_file: Path) -> TaskPlan:
                     plans_to_group = [(member_id, member_plan.to_dict())
                                       for member_id, member_plan in member_plans.items()]
                 elif isinstance(definition, WorkflowProduct):
-                    plot_plan = definition.compile(workflow_context(
-                        TimeConfig(start_time=start_time, forecast_time=forecast_time),
-                        PlotConfig(plot_name=plot_name, plot_params=params, base_dir=base_dir,
-                                   dataset_id=source.dataset_id, parameters=source.parameters))).to_dict()
+                    plot_plan = definition.compile(workflow_context(time_config, plot_config)).to_dict()
                     plans_to_group = [(None, plot_plan)]
                 else:
                     raise TypeError(f"plot {plot_name!r} has no v3 product plan")

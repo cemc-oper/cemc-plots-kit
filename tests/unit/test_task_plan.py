@@ -32,6 +32,7 @@ def test_t2m_task_plan_uses_v3_workflow_without_reading_fields(tmp_path, monkeyp
     assert len(jobs) == 2
     assert all(job["executable"] and job["plot_plan"]["plan_schema_version"] == 3 for job in jobs)
     assert all(job["plot_plan"]["recipe"]["identity"] == "cn.t2m" for job in jobs)
+    assert all(job["plot_plan"]["context"]["params"]["model"] == "CMA-GFS" for job in jobs)
     assert len(plan.to_dict()["requests"]) == 2
 
 
@@ -53,7 +54,7 @@ def test_wind_task_plan_binds_named_10m_fields_and_actual_dataset(tmp_path, monk
     assert {query["parameter"] for query in queries} == {"cedarkit.u10m", "cedarkit.v10m"}
     assert all(query["level_type"] == "height_above_ground" and query["level"] == 10 for query in queries)
     titles = "\n".join(item["text"] for item in job["plot_plan"]["content"]["charts"][0]["titles"])
-    for token in ("cma_gfs_gmf", "2026110212 UTC", "2026110218 UTC", "+006h"):
+    for token in ("CMA-GFS", "2026110212 UTC", "2026110218 UTC", "+006h"):
         assert token in titles
 
 

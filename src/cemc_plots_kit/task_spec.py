@@ -117,6 +117,7 @@ class ResolvedTaskSource:
     origin: str
     definitions: tuple[dict[str, Any], ...]
     parameters: dict[str, Any]
+    model_name: str | None = None
 
 
 def resolve_task_source(source: SourceConfig) -> dict[str, Any]:
@@ -136,11 +137,12 @@ def resolve_task_dataset(source: SourceConfig):
 
     catalog_path = mounted_catalog_path()
     catalog = yaml.safe_load(catalog_path.read_text(encoding="utf-8"))
-    declaration = next(
-        (dict(row["source"]) for row in catalog["datasets"]
+    deployment = next(
+        (row for row in catalog["datasets"]
          if source.dataset == row["id"] or source.dataset in row.get("aliases", [])),
-        {"kind": "local", "dataset": source.dataset},
+        None,
     )
+    declaration = dict(deployment["source"]) if deployment else {"kind": "local", "dataset": source.dataset}
     root = source.overrides.get("storage_base")
     if root is None:
         raise TaskSpecError("source policy requires an explicit overrides.storage_base")
@@ -149,12 +151,16 @@ def resolve_task_dataset(source: SourceConfig):
         configuration = plan_source_binding(declaration)
     except (reki.QueryError, reki.SourceError) as exc:
         raise TaskSpecError(f"source policy: {exc}") from exc
+    dataset_id = configuration.source["dataset"]
+    if deployment is None:
+        deployment = next((row for row in catalog["datasets"] if row["source"]["dataset"] == dataset_id), {})
     return ResolvedTaskSource(
         source=thaw(configuration.source),
-        dataset_id=configuration.source["dataset"],
+        dataset_id=dataset_id,
         origin=str(catalog_path),
         definitions=tuple(thaw(item) for item in configuration.definitions),
         parameters=thaw(configuration.parameters or {}),
+        model_name=deployment.get("metadata", {}).get("model_name"),
     )
 
 
