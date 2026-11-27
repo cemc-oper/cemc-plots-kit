@@ -32,7 +32,7 @@ dependencies = [
     # Keep the wind style, model parameter and public source contract together.
     "cedarkit-plots>=2026.9.1.dev42",
     "cedar-graph>=2026.9.1.dev23",
-    "reki>=2026.9.1.dev100",
+    "reki>=2026.11.0",
 ]
 
 [project.scripts]
